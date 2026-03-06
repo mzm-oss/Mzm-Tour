@@ -44,7 +44,7 @@ export async function fetchPaketsServerSide(): Promise<Paket[]> {
                 Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
                 "Content-Type": "application/json",
             },
-            cache: "no-store", // Disable fetch-level cache karena data > 2MB (limit Next.js). Route-level cache (revalidate=60 di page) akan tetap meng-cache HTML-nya.
+            next: { revalidate: 60 }, // Biarkan Next.js meng-cache response selama 60 detik (Sesuai dengan ISR page)
         });
 
         if (!res.ok) {
@@ -54,7 +54,12 @@ export async function fetchPaketsServerSide(): Promise<Paket[]> {
 
         const data: Record<string, unknown>[] = await res.json();
         return data.map(rowToPaket);
-    } catch (err) {
+    } catch (err: any) {
+        // Next.js menggunakan error khusus (DYNAMIC_SERVER_USAGE) untuk bailout dari static render.
+        // Jika error ini ter-catch, Next.js gagal membuat halaman secara dinamis. Kita rethrow error ini.
+        if (err?.digest === 'DYNAMIC_SERVER_USAGE') {
+            throw err;
+        }
         console.error("fetchPaketsServerSide error:", err);
         return [];
     }
