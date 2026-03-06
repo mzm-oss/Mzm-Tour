@@ -1,7 +1,5 @@
 import type { Paket } from "@/lib/packagesData";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
+import { supabase } from "@/lib/supabase";
 
 function rowToPaket(row: Record<string, unknown>): Paket {
     return {
@@ -29,7 +27,6 @@ function rowToPaket(row: Record<string, unknown>): Paket {
 // Data di-cache dan di-revalidate otomatis setiap 60 detik
 export async function fetchPaketsServerSide(): Promise<Paket[]> {
     try {
-        // Hanya ambil kolom yang dibutuhkan (bukan SELECT *) untuk kurangi payload (< 2MB)
         const columns = [
             "id", "kategori", "tipe_umroh", "nama", "harga", "durasi",
             "jadwal", "badge", "badge_color", "fasilitas", "deskripsi",
@@ -37,29 +34,19 @@ export async function fetchPaketsServerSide(): Promise<Paket[]> {
             "status_publish", "tanggal_berangkat"
         ].join(",");
 
-        const url = `${SUPABASE_URL}/rest/v1/pakets?select=${columns}&order=created_at.asc&limit=100`;
-        const res = await fetch(url, {
-            headers: {
-                apikey: SUPABASE_ANON_KEY,
-                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-                "Content-Type": "application/json",
-            },
-            next: { revalidate: 60 }, // Biarkan Next.js meng-cache response selama 60 detik (Sesuai dengan ISR page)
-        });
+        const { data, error } = await supabase
+            .from("pakets")
+            .select(columns)
+            .order("created_at", { ascending: true })
+            .limit(100);
 
-        if (!res.ok) {
-            console.error("Failed to fetch pakets:", await res.text());
+        if (error) {
+            console.error("Failed to fetch pakets via supabase client:", error.message);
             return [];
         }
 
-        const data: Record<string, unknown>[] = await res.json();
-        return data.map(rowToPaket);
+        return ((data as unknown) as Record<string, unknown>[]).map(rowToPaket);
     } catch (err: any) {
-        // Next.js menggunakan error khusus (DYNAMIC_SERVER_USAGE) untuk bailout dari static render.
-        // Jika error ini ter-catch, Next.js gagal membuat halaman secara dinamis. Kita rethrow error ini.
-        if (err?.digest === 'DYNAMIC_SERVER_USAGE') {
-            throw err;
-        }
         console.error("fetchPaketsServerSide error:", err);
         return [];
     }
