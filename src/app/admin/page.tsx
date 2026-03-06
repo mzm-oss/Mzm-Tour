@@ -340,8 +340,8 @@ export default function AdminPage() {
                 <Badge label={hist ? "RIWAYAT" : p.kategori} color={hist ? "#9ca3af" : (KAT_COLORS[p.kategori] || "#008080")} />
                 {!hist && p.kategori === "umroh" && p.tipeUmroh && (<span className={`text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full ${p.tipeUmroh === "plus" ? "bg-indigo-100 text-indigo-700 border border-indigo-200" : "bg-teal-50 text-teal-700 border border-teal-200"}`}>{p.tipeUmroh === "plus" ? "Plus" : "Reguler"}</span>)}
                 <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm truncate">{p.nama}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate flex items-center gap-1"><IoWalletOutline className="w-3 h-3" /> {p.harga} · {p.durasi}{p.jadwal ? ` · ${p.jadwal}` : ""}</p>
+                    <p className="font-semibold text-gray-900 text-sm truncate whitespace-normal">{p.nama}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate flex items-center gap-1"><IoWalletOutline className="w-3 h-3 flex-shrink-0" /> {p.harga} · {p.durasi}{p.jadwal ? ` · ${p.jadwal}` : ""}</p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                     <div className="relative hidden sm:block">
@@ -360,8 +360,10 @@ export default function AdminPage() {
                         </select>
                         <IoChevronDown className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${hist ? "text-gray-400" : "text-teal-500"}`} />
                     </div>
-                    <button onClick={() => handleEdit(p)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"><IoCreateOutline className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(p.id)} className="p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition"><IoTrashOutline className="w-4 h-4" /></button>
+                    <div className="flex sm:flex-row flex-col gap-1.5">
+                        <button onClick={() => handleEdit(p)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"><IoCreateOutline className="w-4 h-4" /></button>
+                        <button onClick={() => handleDelete(p.id)} className="p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition"><IoTrashOutline className="w-4 h-4" /></button>
+                    </div>
                 </div>
             </div>
         );
@@ -523,10 +525,10 @@ export default function AdminPage() {
                                 </button>
                             )}
                         </div>
-                        <div className="flex gap-1 mt-5 bg-white/10 p-1 rounded-xl w-fit">
+                        <div className="flex flex-wrap gap-2 mt-5 bg-white/10 p-1.5 rounded-xl w-fit xl:w-full">
                             {tabList.map(t => (
                                 <button key={t.key} onClick={() => setTab(t.key)}
-                                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all ${tab === t.key ? "bg-white text-teal-700 shadow" : "text-white/80 hover:text-white hover:bg-white/15"}`}>
+                                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${tab === t.key ? "bg-white text-teal-700 shadow" : "text-white/80 hover:text-white hover:bg-white/15"}`}>
                                     <t.icon className="w-4 h-4" /> {t.label}
                                 </button>
                             ))}
@@ -604,8 +606,8 @@ export default function AdminPage() {
                                     <div key={r.id} className="flex flex-col sm:flex-row gap-4 p-5 hover:bg-gray-50 transition">
                                         <div className="flex-shrink-0 w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-sm">{r.name?.charAt(0)?.toUpperCase() || "?"}</div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex flex-wrap items-center gap-2 mb-1"><h4 className="font-bold text-gray-900 text-sm">{r.name}</h4><span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold border border-yellow-200 flex items-center gap-0.5"><IoStar className="w-3 h-3" /> {r.rating}</span><span className="text-xs text-gray-400 flex items-center gap-1"><IoCalendarOutline className="w-3 h-3" /> {r.date}</span>{r.location && <span className="text-xs text-gray-400 flex items-center gap-1"><IoLocationOutline className="w-3 h-3" /> {r.location}</span>}</div>
-                                            <p className="text-sm text-gray-600 line-clamp-2">&ldquo;{r.text}&rdquo;</p>
+                                            <div className="flex flex-wrap items-center gap-2 mb-1"><h4 className="font-bold text-gray-900 text-sm">{r.name}</h4><span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold border border-yellow-200 flex items-center gap-0.5"><IoStar className="w-3 h-3" /> {r.rating}</span><span className="text-xs text-gray-400 flex items-center gap-1 whitespace-nowrap"><IoCalendarOutline className="w-3 h-3 flex-shrink-0" /> {r.date}</span>{r.location && <span className="text-xs text-gray-400 flex items-center gap-1 whitespace-nowrap"><IoLocationOutline className="w-3 h-3 flex-shrink-0" /> {r.location}</span>}</div>
+                                            <p className="text-sm text-gray-600 line-clamp-2 md:line-clamp-none">&ldquo;{r.text}&rdquo;</p>
                                         </div>
                                         <div className="flex gap-1.5 sm:flex-col sm:w-20 flex-shrink-0">
                                             <button onClick={() => handleEditReview(r)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition"><IoCreateOutline className="w-3.5 h-3.5" /> Edit</button>
