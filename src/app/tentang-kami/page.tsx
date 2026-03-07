@@ -14,14 +14,14 @@ export default function TentangKamiPage() {
                 <div className="relative w-full overflow-hidden aspect-auto sm:aspect-[1512/376]">
                     {/* Mobile: show full image naturally */}
                     <Image
-                        src="/img/tentang kami/sampul foto.png"
+                        src="/img/tentang-kami/sampul-foto.png"
                         alt="Tentang MZM Tour"
                         fill
                         className="hidden sm:block object-cover object-center"
                         priority
                     />
                     <Image
-                        src="/img/tentang kami/sampul foto.png"
+                        src="/img/tentang-kami/sampul-foto.png"
                         alt="Tentang MZM Tour"
                         width={1512}
                         height={1512}
@@ -49,7 +49,7 @@ export default function TentangKamiPage() {
                             {/* The exported image already includes teal bg + border + shadow */}
                             <div className="relative w-full" style={{ aspectRatio: "3/4" }}>
                                 <Image
-                                    src="/img/tentang kami/Overlay+Border+Shadow.png"
+                                    src="/img/tentang-kami/overlay-border-shadow.png"
                                     alt="MZM Travel"
                                     fill
                                     className="object-contain object-center"
@@ -69,7 +69,7 @@ export default function TentangKamiPage() {
                                 }}
                             >
                                 <Image
-                                    src="/img/tentang kami/Background+Border.png"
+                                    src="/img/tentang-kami/background-border.png"
                                     alt="3+ Tahun Melayani"
                                     fill
                                     className="object-contain"
@@ -261,7 +261,7 @@ export default function TentangKamiPage() {
                             <p className="text-sm font-bold text-gray-700 mb-3">SK Pengesahan Pendirian Badan Hukum</p>
                             <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-white" style={{ aspectRatio: "692/1030" }}>
                                 <Image
-                                    src="/img/tentang kami/LEGALITAS/LEGALITAS 1.png"
+                                    src="/img/tentang-kami/legalitas/legalitas-1.png"
                                     alt="SK Pengesahan Pendirian Badan Hukum"
                                     fill
                                     className="object-contain"
@@ -275,7 +275,7 @@ export default function TentangKamiPage() {
                             <p className="text-sm font-bold text-gray-700 mb-3">Lampiran Keputusan Menteri Hukum &amp; HAM</p>
                             <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-white" style={{ aspectRatio: "692/1030" }}>
                                 <Image
-                                    src="/img/tentang kami/LEGALITAS/LEGALITAS 2.png"
+                                    src="/img/tentang-kami/legalitas/legalitas-2.png"
                                     alt="Lampiran Keputusan Menteri Hukum & HAM"
                                     fill
                                     className="object-contain"

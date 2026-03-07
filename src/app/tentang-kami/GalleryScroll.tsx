@@ -4,10 +4,10 @@ import Image from "next/image";
 import { useRef } from "react";
 
 const galleryImages = [
-    { src: "/img/tentang kami/IMG 1.png", alt: "Momen 1" },
-    { src: "/img/tentang kami/IMG 2.png", alt: "Momen 2" },
-    { src: "/img/tentang kami/IMG 3.png", alt: "Momen 3" },
-    { src: "/img/tentang kami/IMG 4.png", alt: "Momen 4" },
+    { src: "/img/tentang-kami/img-1.png", alt: "Momen 1" },
+    { src: "/img/tentang-kami/img-2.png", alt: "Momen 2" },
+    { src: "/img/tentang-kami/img-3.png", alt: "Momen 3" },
+    { src: "/img/tentang-kami/img-4.png", alt: "Momen 4" },
 ];
 
 export default function GalleryScroll() {
