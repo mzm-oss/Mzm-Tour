@@ -4,7 +4,7 @@ import PackageNavbar from "@/components/PackageNavbar";
 import { fetchPaketsServerSide } from "@/lib/fetchPaketsServer";
 import WisataClientList from "./WisataClientList";
 
-export const dynamic = "force-dynamic"; // selalu fetch fresh dari DB, tidak ada cache delay
+export const revalidate = 30; // cache 30s, tapi admin save → revalidatePath() langsung invalidate
 
 export default async function PaketWisataPage() {
     const allPakets = await fetchPaketsServerSide();
