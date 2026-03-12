@@ -93,6 +93,51 @@ function Empty({ icon: Icon, msg, hint }: { icon: React.ComponentType<{ classNam
     );
 }
 
+function ConfirmModal({ data, onConfirm, onCancel }: {
+    data: { title: string; msg: string; confirmLabel?: string; danger?: boolean } | null;
+    onConfirm: () => void;
+    onCancel: () => void;
+}) {
+    if (!data) return null;
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ backdropFilter: "blur(6px)", background: "rgba(15,23,42,0.45)" }}>
+            <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className={`px-6 pt-7 pb-4 flex flex-col items-center text-center`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-inner ${
+                        data.danger ? "bg-red-50" : "bg-amber-50"
+                    }`}>
+                        <svg viewBox="0 0 24 24" fill="none" className={`w-7 h-7 ${ data.danger ? "text-red-500" : "text-amber-500" }`}>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" fill="none" />
+                        </svg>
+                    </div>
+                    <h3 className="text-base font-bold text-gray-900 mb-1.5">{data.title}</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">{data.msg}</p>
+                </div>
+                {/* Actions */}
+                <div className="flex gap-3 px-6 pb-6 pt-2">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 py-3 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all active:scale-95"
+                    >
+                        Batalkan
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className={`flex-1 py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-95 shadow-md ${
+                            data.danger
+                                ? "bg-red-500 hover:bg-red-600 shadow-red-200"
+                                : "bg-teal-600 hover:bg-teal-700 shadow-teal-200"
+                        }`}
+                    >
+                        {data.confirmLabel || "Konfirmasi"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 
@@ -121,6 +166,11 @@ export default function AdminPage() {
     // Review
     const [editReviewId, setEditReviewId] = useState<string | null>(null);
     const [reviewForm, setReviewForm] = useState<Partial<Review>>({});
+    const [confirmDialog, setConfirmDialog] = useState<{ title: string; msg: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void } | null>(null);
+
+    function askConfirm(title: string, msg: string, onConfirm: () => void, opts?: { confirmLabel?: string; danger?: boolean }) {
+        setConfirmDialog({ title, msg, onConfirm, ...opts });
+    }
 
     useEffect(() => {
         fetch("/api/pakets").then(r => r.json()).then(setPakets);
@@ -189,10 +239,17 @@ export default function AdminPage() {
     }
 
     async function handleDelete(id: string) {
-        if (!confirm("Hapus paket ini?")) return;
-        await fetch(`/api/pakets?id=${id}`, { method: "DELETE" });
-        const u = pakets.filter(p => p.id !== id);
-        setPakets(u); showToast("Paket dihapus.");
+        askConfirm(
+            "Hapus Paket?",
+            "Paket ini akan dihapus permanen dan tidak bisa dikembalikan.",
+            async () => {
+                setConfirmDialog(null);
+                await fetch(`/api/pakets?id=${id}`, { method: "DELETE" });
+                const u = pakets.filter(p => p.id !== id);
+                setPakets(u); showToast("Paket dihapus.");
+            },
+            { confirmLabel: "Ya, Hapus", danger: true }
+        );
     }
 
     async function handleStatusChange(p: Paket, v: string) {
@@ -370,9 +427,12 @@ export default function AdminPage() {
                             disabled={!!savingStatusId}
                             onChange={(e) => {
                                 const newStatus = e.target.value;
-                                if (confirm(`Yakin ingin mengubah status menjadi "${newStatus}"?`)) {
-                                    handleStatusChange(p, newStatus);
-                                }
+                                askConfirm(
+                                    `Ubah Status Paket`,
+                                    `Yakin ingin mengubah status "${p.nama}" menjadi "${newStatus}"?`,
+                                    () => { setConfirmDialog(null); handleStatusChange(p, newStatus); },
+                                    { confirmLabel: "Ya, Ubah", danger: newStatus === "Sudah Berangkat" }
+                                );
                             }}
                             className={`appearance-none text-xs font-bold rounded-full pl-4 pr-8 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${hist ? "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 focus:ring-2 focus:ring-gray-200" : "bg-white border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 focus:ring-2 focus:ring-teal-500/20"}`}
                         >
@@ -404,37 +464,52 @@ export default function AdminPage() {
         const activeJadwal = allM.filter(e => e.status !== "berangkat" && e.tgl >= todayDate);
         const histJadwal = allM.filter(e => e.status === "berangkat" || e.tgl < todayDate);
 
-        async function updStatus(pid: string, idx: number, s: string) {
-            const u = pakets.map(p => { 
-                if (p.id !== pid) return p; 
-                
-                // 1. Update status per-tanggal
-                const d = [...(p.tanggalBerangkat || [])]; 
-                d[idx] = { ...d[idx], status: s as "tersedia" | "terbatas" | "full" | "berangkat" }; 
-                
-                // 2. Cek semua tanggal untuk auto-update statusPublish paket
-                //    Jadwal dianggap "selesai" jika status "berangkat" ATAU tanggalnya sudah lewat hari ini
-                const today = new Date().toISOString().split("T")[0];
-                const isAllBerangkat = d.length > 0 && d.every(tgl => tgl.status === "berangkat" || tgl.tanggal < today);
-                const newStatusPublish = (isAllBerangkat ? "Sudah Berangkat" : "Tersedia") as "Tersedia" | "Sudah Berangkat";
-                
-                return { ...p, statusPublish: newStatusPublish, tanggalBerangkat: d }; 
-            });
-            const target = u.find(p => p.id === pid);
-            if (target) {
-                await fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
-                if (target.statusPublish === "Sudah Berangkat") {
-                    showToast(`Sistem: Semua jadwal berangkat, paket "${target.nama}" otomatis ditutup.`);
-                }
-            }
-            setPakets(u);
+        function doUpdStatus(pid: string, idx: number, s: string) {
+            // Cari nama jadwal untuk pesan konfirmasi
+            const paket = pakets.find(p => p.id === pid);
+            const tglEntry = paket?.tanggalBerangkat?.[idx];
+            const statusLabel: Record<string, string> = { tersedia: "Tersedia", terbatas: "Terbatas", full: "Full Booked", berangkat: "Berangkat" };
+            askConfirm(
+                "Ubah Status Jadwal",
+                `Ubah status jadwal ${tglEntry?.tanggal || ""} pada paket "${paket?.nama || ""}" menjadi "${statusLabel[s] || s}"?`,
+                async () => {
+                    setConfirmDialog(null);
+                    const u = pakets.map(p => { 
+                        if (p.id !== pid) return p; 
+                        const d = [...(p.tanggalBerangkat || [])]; 
+                        d[idx] = { ...d[idx], status: s as "tersedia" | "terbatas" | "full" | "berangkat" }; 
+                        const today = new Date().toISOString().split("T")[0];
+                        const isAllBerangkat = d.length > 0 && d.every(tgl => tgl.status === "berangkat" || tgl.tanggal < today);
+                        const newStatusPublish = (isAllBerangkat ? "Sudah Berangkat" : "Tersedia") as "Tersedia" | "Sudah Berangkat";
+                        return { ...p, statusPublish: newStatusPublish, tanggalBerangkat: d }; 
+                    });
+                    const target = u.find(p => p.id === pid);
+                    if (target) {
+                        await fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
+                        if (target.statusPublish === "Sudah Berangkat") {
+                            showToast(`Sistem: Semua jadwal berangkat, paket "${target.nama}" otomatis ditutup.`);
+                        }
+                    }
+                    setPakets(u);
+                },
+                { confirmLabel: "Ya, Ubah", danger: s === "berangkat" }
+            );
         }
-        async function rmDate(pid: string, idx: number) {
-            if (!confirm("Hapus jadwal keberangkatan ini?")) return;
-            const u = pakets.map(p => p.id !== pid ? p : { ...p, tanggalBerangkat: (p.tanggalBerangkat || []).filter((_, i) => i !== idx) });
-            const target = u.find(p => p.id === pid);
-            if (target) await fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
-            setPakets(u); showToast("Tanggal dihapus.");
+        function rmDate(pid: string, idx: number) {
+            const paket = pakets.find(p => p.id === pid);
+            const tglEntry = paket?.tanggalBerangkat?.[idx];
+            askConfirm(
+                "Hapus Jadwal?",
+                `Hapus jadwal keberangkatan ${tglEntry?.tanggal || ""} dari paket "${paket?.nama || ""}"?`,
+                async () => {
+                    setConfirmDialog(null);
+                    const u = pakets.map(p => p.id !== pid ? p : { ...p, tanggalBerangkat: (p.tanggalBerangkat || []).filter((_, i) => i !== idx) });
+                    const target = u.find(p => p.id === pid);
+                    if (target) await fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
+                    setPakets(u); showToast("Jadwal dihapus.");
+                },
+                { confirmLabel: "Ya, Hapus", danger: true }
+            );
         }
         async function addDate() {
             if (!jadwalNewDate || !jadwalNewPaket) { showToast("Pilih paket & tanggal.", "err"); return; }
@@ -484,7 +559,7 @@ export default function AdminPage() {
                                     <div className="flex-1 min-w-0"><p className="font-semibold text-sm text-gray-900 truncate">{e.nama}</p><Badge label={e.kat} color={KAT_COLORS[e.kat] || "#008080"} /></div>
                                     <div className="flex items-center gap-2 flex-shrink-0">
                                         <div className="relative">
-                                            <select value={e.status} onChange={ev => updStatus(e.pid, e.idx, ev.target.value)} className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${statusCls[e.status] || statusCls.tersedia}`}>
+                                            <select value={e.status} onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)} className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${statusCls[e.status] || statusCls.tersedia}`}>
                                                 <option value="tersedia">Tersedia</option><option value="terbatas">Terbatas</option><option value="full">Full Booked</option><option value="berangkat">Berangkat</option>
                                             </select>
                                             <IoChevronDown className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 ${statusIconColors[e.status] || "text-teal-500"}`} />
@@ -516,7 +591,7 @@ export default function AdminPage() {
                                             <div className="flex-1 min-w-0"><p className="font-semibold text-sm text-gray-900 truncate">{e.nama}</p><Badge label={e.kat} color="#9ca3af" /></div>
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                 <div className="relative">
-                                                    <select value={e.status} onChange={ev => updStatus(e.pid, e.idx, ev.target.value)} className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] bg-white border-gray-200 text-gray-500 hover:bg-gray-50 focus:ring-2 focus:ring-gray-200`}>
+                                                    <select value={e.status} onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)} className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] bg-white border-gray-200 text-gray-500 hover:bg-gray-50 focus:ring-2 focus:ring-gray-200`}>
                                                         <option value="tersedia">Ke Tersedia</option><option value="terbatas">Ke Terbatas</option><option value="full">Ke Full Booked</option><option value="berangkat">Berangkat</option>
                                                     </select>
                                                     <IoChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
@@ -551,6 +626,11 @@ export default function AdminPage() {
             <PackageNavbar />
             <main className="min-h-screen pt-16 bg-gray-50">
                 <Toast toast={toast} />
+                <ConfirmModal 
+                    data={confirmDialog} 
+                    onConfirm={() => confirmDialog?.onConfirm()} 
+                    onCancel={() => setConfirmDialog(null)} 
+                />
 
                 {/* Header */}
                 <div className="text-white" style={{ background: "linear-gradient(135deg, #014E4E 0%, #008080 100%)" }}>
