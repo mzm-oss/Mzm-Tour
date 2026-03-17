@@ -42,7 +42,8 @@ export async function fetchPaketsServerSide(): Promise<Paket[]> {
                 "apikey": anonKey,
                 "Authorization": `Bearer ${anonKey}`
             },
-            next: { revalidate: 30 } // Cache request for 30 seconds
+            // `fetch` ini akan secara otomatis di-cache oleh Next.js
+            // dan akan langsung invalid ketika `revalidatePath` dipanggil oleh admin.
         });
 
         if (!response.ok) {

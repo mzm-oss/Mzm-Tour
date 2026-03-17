@@ -4,8 +4,6 @@ import PackageNavbar from "@/components/PackageNavbar";
 import { fetchPaketsServerSide } from "@/lib/fetchPaketsServer";
 import PaketClientList from "./PaketClientList";
 
-export const revalidate = 30; // cache 30s, tapi admin save → revalidatePath() langsung invalidate
-
 export default async function PaketUmrohPage() {
     const allPakets = await fetchPaketsServerSide();
     const umrohPakets = allPakets.filter(p => p.kategori === "umroh");

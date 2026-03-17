@@ -86,18 +86,54 @@ export async function GET(req: NextRequest) {
         return NextResponse.json([]); // Return array kosong supaya client tidak crash `.map is not a function`
     }
 
-    // Header Cache-Control — 10 detik jadi fallback setelah revalidatePath
-    return NextResponse.json((data || []).map(rowToPaket), {
-        headers: {
-            "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30"
+    // Return direct data since we rely on `revalidatePath` in Next.js Server Components.
+    return NextResponse.json((data || []).map(rowToPaket));
+}
+
+// Helper untuk mengunggah gambar ke Storage
+async function uploadImageToStorage(base64Data: string, paketId: string): Promise<string | null> {
+    try {
+        const matches = base64Data.match(/^data:(image\/[a-zA-Z+.-]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) return null; // Bukan base64 valid
+
+        const mimeType = matches[1];
+        const ext = mimeType.split('/')[1] || 'png';
+        const buffer = Buffer.from(matches[2], 'base64');
+        const fileName = `${paketId}-${Date.now()}.${ext}`;
+
+        const { error } = await supabase.storage
+            .from('public-images')
+            .upload(fileName, buffer, { contentType: mimeType, upsert: true });
+
+        if (error) {
+            console.error("Storage upload error:", error);
+            return null;
         }
-    });
+
+        const { data: publicUrlData } = supabase.storage
+            .from('public-images')
+            .getPublicUrl(fileName);
+
+        return publicUrlData.publicUrl;
+    } catch (e) {
+        console.error("Failed to upload image:", e);
+        return null;
+    }
 }
 
 // POST /api/pakets
 export async function POST(req: NextRequest) {
     const body = await req.json();
-    const row = paketToRow({ ...body, id: body.id || `pkg-${Date.now()}` });
+    const id = body.id || `pkg-${Date.now()}`;
+    
+    // Periksa apakah ada gambar base64 baru
+    let finalImageUrl = body.image;
+    if (finalImageUrl && finalImageUrl.startsWith("data:image")) {
+        const uploadedUrl = await uploadImageToStorage(finalImageUrl, id);
+        if (uploadedUrl) finalImageUrl = uploadedUrl;
+    }
+
+    const row = paketToRow({ ...body, id, image: finalImageUrl });
 
     const { data, error } = await supabase.from("pakets").insert([row]).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -109,7 +145,17 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { id, ...rest } = body;
-    const row = paketToRow(rest);
+    
+    // Periksa apakah ada gambar base64 baru yang diedit
+    let finalImageUrl = rest.image;
+    if (finalImageUrl && finalImageUrl.startsWith("data:image")) {
+        const uploadedUrl = await uploadImageToStorage(finalImageUrl, id);
+        if (uploadedUrl) finalImageUrl = uploadedUrl;
+    } else if (finalImageUrl === "") {
+         finalImageUrl = null;
+    }
+
+    const row = paketToRow({ ...rest, image: finalImageUrl });
     delete (row as Record<string, unknown>).id;
 
     const { data, error } = await supabase.from("pakets").update(row).eq("id", id).select().single();

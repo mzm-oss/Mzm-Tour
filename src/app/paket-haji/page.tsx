@@ -4,8 +4,6 @@ import PackageNavbar from "@/components/PackageNavbar";
 import { fetchPaketsServerSide } from "@/lib/fetchPaketsServer";
 import HajiClientList from "./HajiClientList";
 
-export const revalidate = 30; // cache 30s, tapi admin save → revalidatePath() langsung invalidate
-
 export default async function PaketHajiPage() {
     const allPakets = await fetchPaketsServerSide();
     const hajiPakets = allPakets.filter(p => p.kategori === "haji");
