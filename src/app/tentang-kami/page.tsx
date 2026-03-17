@@ -261,7 +261,7 @@ export default function TentangKamiPage() {
                             <p className="text-sm font-bold text-gray-700 mb-3">SK Pengesahan Pendirian Badan Hukum</p>
                             <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-white" style={{ aspectRatio: "692/1030" }}>
                                 <Image
-                                    src="/img/tentang-kami/legalitas/legalitas-1.png"
+                                    src="/img/tentang-kami/LEGALITAS/legalitas-1.png"
                                     alt="SK Pengesahan Pendirian Badan Hukum"
                                     fill
                                     className="object-contain"
@@ -275,7 +275,7 @@ export default function TentangKamiPage() {
                             <p className="text-sm font-bold text-gray-700 mb-3">Lampiran Keputusan Menteri Hukum &amp; HAM</p>
                             <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-white" style={{ aspectRatio: "692/1030" }}>
                                 <Image
-                                    src="/img/tentang-kami/legalitas/legalitas-2.png"
+                                    src="/img/tentang-kami/LEGALITAS/legalitas-2.png"
                                     alt="Lampiran Keputusan Menteri Hukum & HAM"
                                     fill
                                     className="object-contain"
