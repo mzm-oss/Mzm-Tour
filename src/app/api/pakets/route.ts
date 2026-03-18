@@ -3,13 +3,9 @@ import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import type { Paket } from "@/lib/packagesData";
 
-// Helper: invalidate semua halaman paket setelah ada perubahan data
+// Helper: invalidate seluruh cache Next.js agar data baru langsung tampil di semua page
 function revalidateAllPaketPages() {
-    revalidatePath("/paket-umroh");
-    revalidatePath("/paket-haji");
-    revalidatePath("/paket-wisata");
-    revalidatePath("/jadwal-keberangkatan");
-    revalidatePath("/");
+    revalidatePath("/", "layout");
 }
 
 // DB row → Paket type

@@ -303,9 +303,9 @@ export default function TentangKamiPage() {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                             </svg>
                                         </div>
-                                        <p className="text-gray-600 text-sm leading-relaxed">
-                                            Jl. Kalibata Selatan II No.23 A, RT.12/RW.4, Kalibata, Kec. Pancoran, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12740, Jakarta, Indonesia, 12740
-                                        </p>
+                                        <a href="https://maps.app.goo.gl/2u7RPCPTKbFQHrVp9" target="_blank" rel="noopener noreferrer" className="text-gray-600 leading-relaxed text-sm hover:text-teal-700 transition-colors">
+                                            Jl. Kalibata Selatan II B No.23 A, RT.2/RW.4, Kalibata, Kec. Pancoran, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12740
+                                        </a>
                                     </div>
 
                                     <div className="flex items-center gap-3">
@@ -314,22 +314,24 @@ export default function TentangKamiPage() {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                             </svg>
                                         </div>
-                                        <p className="text-gray-600 text-sm font-medium">+62 823-1100-0853</p>
+                                        <a href="https://wa.me/6282311000853" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-sm font-medium hover:text-teal-700 transition-colors">
+                                            +62 823-1100-0853
+                                        </a>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Right — Google Maps */}
-                            <div className="w-full sm:w-96 flex-shrink-0">
-                                <iframe
-                                    src="https://maps.google.com/maps?q=Jl.+Kalibata+Selatan+II+No.23+A,+Kalibata,+Pancoran,+Jakarta+Selatan+12740&output=embed&hl=id"
-                                    width="100%"
-                                    height="100%"
-                                    style={{ border: 0, minHeight: "250px" }}
-                                    allowFullScreen
-                                    loading="lazy"
+                            <div className="w-full sm:w-96 flex-shrink-0 relative overflow-hidden rounded-xl">
+                                <iframe 
+                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3965.9922287547024!2d106.83980037409685!3d-6.264751293723884!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f3005e92c9c3%3A0x89ec3ef7dc3f63b9!2sMZM%20TOUR%20TRAVEL%20%26%20LAW%20OFFICE%20(PERKARAKU)!5e0!3m2!1sen!2sus!4v1773816142675!5m2!1sen!2sus" 
+                                    width="100%" 
+                                    height="100%" 
+                                    style={{ border: 0, minHeight: "250px" }} 
+                                    allowFullScreen 
+                                    loading="lazy" 
                                     referrerPolicy="no-referrer-when-downgrade"
-                                    title="Lokasi Kantor MZM Travel"
+                                    title="Peta Lokasi MZM TOUR"
                                 />
                             </div>
                         </div>

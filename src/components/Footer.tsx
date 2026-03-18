@@ -76,7 +76,7 @@ export default function Footer() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
-                                <span className="leading-relaxed">Jl. Kalibata Selatan II No.23 A, Kalibata, Kec. Pancoran, Jakarta Selatan 12740</span>
+                                <span className="leading-relaxed">Jl. Kalibata Selatan II B No.23 A, RT.2/RW.4, Kalibata, Kec. Pancoran, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12740</span>
                             </li>
                             <li className="flex items-start gap-3 text-white/75 text-sm pt-1">
                                 <svg className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,20 +95,8 @@ export default function Footer() {
                     {/* Kolom 4: Kantor Kami + Maps */}
                     <div>
                         <h4 className="text-base font-bold mb-5 text-white border-b border-white/10 pb-3">Kantor Kami</h4>
-                        <div className="rounded-xl overflow-hidden border border-white/10 w-full" style={{ height: "200px" }}>
-                            <iframe
-                                src="https://maps.google.com/maps?q=Jl.+Kalibata+Selatan+II+No.23+A,+Kalibata,+Pancoran,+Jakarta+Selatan+12740&output=embed&hl=id"
-                                width="100%"
-                                height="200"
-                                style={{ border: 0 }}
-                                allowFullScreen
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                                title="Lokasi Kantor MZM Travel"
-                            />
-                        </div>
                         <a
-                            href="https://maps.app.goo.gl/BeAG26D2Yz6EZ8iXA"
+                            href="https://maps.app.goo.gl/2u7RPCPTKbFQHrVp9"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-teal-400 hover:text-teal-300 text-xs mt-3 transition-colors"

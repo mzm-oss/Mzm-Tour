@@ -242,11 +242,14 @@ export default function AdminPage() {
         askConfirm(
             "Hapus Paket?",
             "Paket ini akan dihapus permanen dan tidak bisa dikembalikan.",
-            async () => {
+            () => {
                 setConfirmDialog(null);
-                await fetch(`/api/pakets?id=${id}`, { method: "DELETE" });
+                // Optimistic UI
                 const u = pakets.filter(p => p.id !== id);
-                setPakets(u); showToast("Paket dihapus.");
+                setPakets(u); 
+                showToast("Paket dihapus.");
+                // Fetch in background
+                fetch(`/api/pakets?id=${id}`, { method: "DELETE" }).catch(e => showToast("Gagal hapus di server", "err"));
             },
             { confirmLabel: "Ya, Hapus", danger: true }
         );
@@ -267,15 +270,20 @@ export default function AdminPage() {
                 newTgl = newTgl.map(t => ({ ...t, status: (t.status === "berangkat" ? "tersedia" : t.status) as "tersedia" | "terbatas" | "full" | "berangkat" }));
             }
 
-            const dataToSave = { ...p, statusPublish: v, tanggalBerangkat: newTgl };
-            await fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dataToSave) });
-
+            // Optimistic Update UI Dulu!
             const u = pakets.map(i => i.id === p.id ? { ...i, statusPublish: v as "Tersedia" | "Sudah Berangkat", tanggalBerangkat: newTgl } : i);
             setPakets(u);
             showToast(`Status "${p.nama}" diubah ke ${v}.`);
+            
+            const dataToSave = { ...p, statusPublish: v, tanggalBerangkat: newTgl };
+            
+            // Background Fetch
+            fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dataToSave) })
+                .catch(() => showToast("Gagal mengubah status di server.", "err"))
+                .finally(() => setSavingStatusId(null));
+
         } catch {
             showToast("Gagal mengubah status.", "err");
-        } finally {
             setSavingStatusId(null);
         }
     }
@@ -290,20 +298,37 @@ export default function AdminPage() {
     async function handleSaveReview() {
         if (editReviewId) {
             const { id: _id, ...formData } = reviewForm as Review;
-            void _id;
-            await fetch("/api/reviews", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editReviewId, ...formData }) });
+            
+            // Optimistic UI Update
+            const u = reviews.map(r => r.id === editReviewId ? { ...r, ...formData } : r);
+            setReviews(u as Review[]);
             showToast("Testimoni diperbarui.");
+            setEditReviewId(null); setReviewForm({});
+            
+            // Background Fetch (tanpa await dan tanpa fetch ulang seluruh daftar)
+            fetch("/api/reviews", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editReviewId, ...formData }) })
+                .catch(() => showToast("Gagal memperbarui testimoni di server", "err"));
+        } else {
+            setEditReviewId(null); setReviewForm({});
         }
-        const res = await fetch("/api/reviews");
-        setReviews(await res.json());
-        setEditReviewId(null); setReviewForm({});
     }
     async function handleDeleteReview(id: string) {
-        if (!confirm("Hapus testimoni?")) return;
-        await fetch(`/api/reviews?id=${id}`, { method: "DELETE" });
-        const res = await fetch("/api/reviews");
-        setReviews(await res.json());
-        showToast("Testimoni dihapus.");
+        askConfirm(
+            "Hapus Testimoni?",
+            "Testimoni ini akan dihapus permanen dan tidak bisa dikembalikan.",
+            () => {
+                setConfirmDialog(null);
+                
+                // Optimistic UI
+                const u = reviews.filter(r => r.id !== id);
+                setReviews(u);
+                showToast("Testimoni dihapus.");
+                
+                // Background Fetch
+                fetch(`/api/reviews?id=${id}`, { method: "DELETE" }).catch(() => showToast("Gagal menghapus di server.", "err"));
+            },
+            { confirmLabel: "Ya, Hapus", danger: true }
+        );
     }
 
     const filtered = (() => {
@@ -474,6 +499,7 @@ export default function AdminPage() {
                 `Ubah status jadwal ${tglEntry?.tanggal || ""} pada paket "${paket?.nama || ""}" menjadi "${statusLabel[s] || s}"?`,
                 async () => {
                     setConfirmDialog(null);
+                    // Pindahkan Update State ke atas agar Instan!
                     const u = pakets.map(p => { 
                         if (p.id !== pid) return p; 
                         const d = [...(p.tanggalBerangkat || [])]; 
@@ -483,14 +509,16 @@ export default function AdminPage() {
                         const newStatusPublish = (isAllBerangkat ? "Sudah Berangkat" : "Tersedia") as "Tersedia" | "Sudah Berangkat";
                         return { ...p, statusPublish: newStatusPublish, tanggalBerangkat: d }; 
                     });
+                    setPakets(u);
+                    
                     const target = u.find(p => p.id === pid);
                     if (target) {
-                        await fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
                         if (target.statusPublish === "Sudah Berangkat") {
-                            showToast(`Sistem: Semua jadwal berangkat, paket "${target.nama}" otomatis ditutup.`);
+                            showToast(`Sistem: Semua jadwal berangkat, paket otomatis ditutup.`);
                         }
+                        // Lakukan request secara background!
+                        fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
                     }
-                    setPakets(u);
                 },
                 { confirmLabel: "Ya, Ubah", danger: s === "berangkat" }
             );
@@ -503,20 +531,29 @@ export default function AdminPage() {
                 `Hapus jadwal keberangkatan ${tglEntry?.tanggal || ""} dari paket "${paket?.nama || ""}"?`,
                 async () => {
                     setConfirmDialog(null);
+                    // Update state Instan
                     const u = pakets.map(p => p.id !== pid ? p : { ...p, tanggalBerangkat: (p.tanggalBerangkat || []).filter((_, i) => i !== idx) });
-                    const target = u.find(p => p.id === pid);
-                    if (target) await fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
                     setPakets(u); showToast("Jadwal dihapus.");
+                    
+                    const target = u.find(p => p.id === pid);
+                    if (target) fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
                 },
                 { confirmLabel: "Ya, Hapus", danger: true }
             );
         }
         async function addDate() {
             if (!jadwalNewDate || !jadwalNewPaket) { showToast("Pilih paket & tanggal.", "err"); return; }
+            
+            // Instan UI update
             const u = pakets.map(p => { if (p.id !== jadwalNewPaket) return p; if ((p.tanggalBerangkat || []).some(t => t.tanggal === jadwalNewDate)) { showToast("Tanggal sudah ada.", "err"); return p; } return { ...p, tanggalBerangkat: [...(p.tanggalBerangkat || []), { tanggal: jadwalNewDate, status: "tersedia" as const }].sort((a, b) => a.tanggal.localeCompare(b.tanggal)) }; });
             const target = u.find(p => p.id === jadwalNewPaket);
-            if (target) await fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
+            
+            // Validasi gagal
+            if (target && (target.tanggalBerangkat?.length === pakets.find(a=>a.id === jadwalNewPaket)?.tanggalBerangkat?.length)) { return; }
+            
             setPakets(u); setJadwalNewDate(""); showToast("Jadwal ditambahkan.");
+            
+            if (target) fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
         }
 
         const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGS", "SEP", "OKT", "NOV", "DES"];
