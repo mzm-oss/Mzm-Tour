@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
+import DOMPurify from "dompurify";
+import { JSDOM } from "jsdom";
+
+// Inisialisasi DOMPurify untuk environment Node.js server
+const window = new JSDOM("").window;
+const purify = DOMPurify(window);
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +58,22 @@ export async function GET() {
 // POST /api/reviews
 export async function POST(req: NextRequest) {
     const body = await req.json();
+
+    // Validasi field utama
+    if (!body.name || !body.text) {
+        return NextResponse.json({ error: "Kolom name dan text wajib diisi." }, { status: 400 });
+    }
+
+    // Sanitasi Text Mencegah Keisengan (XSS HTML/Simbol berbahaya)
+    const cleanName = purify.sanitize(body.name, { ALLOWED_TAGS: [] }); // Hanya mengizinkan teks biasa (0 tag HTML)
+    const cleanLocation = purify.sanitize(body.location || "", { ALLOWED_TAGS: [] });
+    const cleanText = purify.sanitize(body.text, { ALLOWED_TAGS: [] });
+
+    // Cek ulang setelah dibersihkan (kalau isi script iseng semua, pas dibersihkan jadi kosong)
+    if (!cleanName || !cleanText) {
+         return NextResponse.json({ error: "Input mengandung karakter tidak diizinkan." }, { status: 400 });
+    }
+
     const id = `rev-${Date.now()}`;
     
     let finalImageUrl = body.image;
@@ -66,10 +88,10 @@ export async function POST(req: NextRequest) {
 
     const review = {
         id,
-        name: body.name,
-        location: body.location || "",
+        name: cleanName,
+        location: cleanLocation,
         rating: body.rating || 5,
-        text: body.text,
+        text: cleanText,
         image: finalImageUrl,
         date: body.date || new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(new Date()),
     };
