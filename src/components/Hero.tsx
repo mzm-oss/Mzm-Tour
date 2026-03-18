@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 export default function Hero() {
     const whatsappNumber = "6282311000853";
-    const whatsappMessage = encodeURIComponent("Halo MZM Tour, saya ingin konsultasi tentang paket umroh");
+    const whatsappMessage = encodeURIComponent("Halo MZM Tour, saya tertarik dan ingin konsultasi lebih lanjut mengenai layanan yang tersedia.");
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
     const [statsVisible, setStatsVisible] = useState(false);
