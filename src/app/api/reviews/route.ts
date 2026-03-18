@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
-import DOMPurify from "dompurify";
-import { JSDOM } from "jsdom";
 
-// Inisialisasi DOMPurify untuk environment Node.js server
-const window = new JSDOM("").window;
-const purify = DOMPurify(window);
+// Fungsi ringan untuk mencegah XSS tanpa membuat server crash
+function escapeHTML(str: string) {
+    if (!str) return "";
+    return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+    );
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -64,10 +72,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Kolom name dan text wajib diisi." }, { status: 400 });
     }
 
-    // Sanitasi Text Mencegah Keisengan (XSS HTML/Simbol berbahaya)
-    const cleanName = purify.sanitize(body.name, { ALLOWED_TAGS: [] }); // Hanya mengizinkan teks biasa (0 tag HTML)
-    const cleanLocation = purify.sanitize(body.location || "", { ALLOWED_TAGS: [] });
-    const cleanText = purify.sanitize(body.text, { ALLOWED_TAGS: [] });
+    // Sanitasi Text Mencegah Keisengan (XSS HTML/Simbol berbahaya) menggunakan regex escape ringan
+    const cleanName = escapeHTML(body.name).trim();
+    const cleanLocation = escapeHTML(body.location || "").trim();
+    const cleanText = escapeHTML(body.text).trim();
 
     // Cek ulang setelah dibersihkan (kalau isi script iseng semua, pas dibersihkan jadi kosong)
     if (!cleanName || !cleanText) {
