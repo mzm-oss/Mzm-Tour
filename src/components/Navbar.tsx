@@ -6,7 +6,7 @@ import { useState } from "react";
 
 export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
-    const whatsappNumber = "6281234567890";
+    const whatsappNumber = "6282311000853";
     const whatsappMessage = encodeURIComponent("Halo MZM Tour, saya ingin konsultasi");
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
@@ -15,7 +15,7 @@ export default function Navbar() {
         { href: "#layanan", label: "Layanan" },
         { href: "#tentang", label: "Tentang MZM Travel" },
         { href: "/jadwal-keberangkatan", label: "Cek Jadwal" },
-        { href: "#review", label: "Review" },
+        { href: "#testimoni", label: "Testimoni" },
     ];
 
     return (
