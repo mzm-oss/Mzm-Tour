@@ -7,9 +7,12 @@ import Reviews from "@/components/Reviews";
 import Footer from "@/components/Footer";
 import { supabase } from "@/lib/supabase";
 
-export const dynamic = 'force-dynamic';
+// Menggunakan ISR (Incremental Static Regeneration)
+// Halaman akan di-cache super cepat, dan diperbarui secara otomatis di background setiap 60 detik
+// atau saat ada testimoni baru yang di-submit (lewat API revalidatePath)
+export const revalidate = 60;
 
-// Halaman Utama akan mengambil data paling baru secara real-time dari Supabase
+// Halaman Utama
 export default async function Home() {
     // Fetch reviews di server agar halaman langsung tampil tanpa loading
     const { data: reviews } = await supabase

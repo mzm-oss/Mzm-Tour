@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 
 export const dynamic = 'force-dynamic';
@@ -75,6 +76,10 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabase.from("reviews").insert([review]).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    
+    // Perbarui cache halaman utama agar testimoni langsung muncul
+    revalidatePath("/");
+    
     return NextResponse.json(data);
 }
 
@@ -95,6 +100,9 @@ export async function PUT(req: NextRequest) {
 
     const { data, error } = await supabase.from("reviews").update(rest).eq("id", id).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    revalidatePath("/");
+    
     return NextResponse.json(data);
 }
 
@@ -105,5 +113,8 @@ export async function DELETE(req: NextRequest) {
 
     const { error } = await supabase.from("reviews").delete().eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    
+    revalidatePath("/");
+    
     return NextResponse.json({ ok: true });
 }
