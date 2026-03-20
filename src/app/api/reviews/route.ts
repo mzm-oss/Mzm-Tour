@@ -18,6 +18,28 @@ function escapeHTML(str: string) {
 
 export const dynamic = 'force-dynamic';
 
+// Simple in-memory rate limiting (per serverless instance)
+const rateLimitMap = new Map<string, { count: number, resetTime: number }>();
+
+function checkRateLimit(ip: string): boolean {
+    const now = Date.now();
+    const windowMs = 60 * 1000; // 1 menit
+    const maxRequests = 3; // maksimal 3 request per menit per IP
+
+    let record = rateLimitMap.get(ip);
+    if (!record || record.resetTime < now) {
+        record = { count: 1, resetTime: now + windowMs };
+        rateLimitMap.set(ip, record);
+        return true;
+    }
+
+    if (record.count >= maxRequests) {
+        return false;
+    }
+
+    record.count += 1;
+    return true;
+}
 // Helper untuk mengunggah gambar ke Storage
 async function uploadImageToStorage(base64Data: string, reviewId: string): Promise<string | null> {
     try {
@@ -65,10 +87,39 @@ export async function GET() {
 
 // POST /api/reviews
 export async function POST(req: NextRequest) {
-    const body = await req.json();
+    // 1. Cek Rate Limit berdasarkan IP atau User Agent sebagai fallback
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("user-agent") || 'unknown-ip';
+    if (!checkRateLimit(ip)) {
+        return NextResponse.json(
+            { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." },
+            { status: 429 } // 429 Too Many Requests
+        );
+    }
+
+    // 2. Cek apakah Review sedang ditutup dari Admin (global_settings)
+    // Jika tabel belum dibuat, akan mengembalikan error (dan kita abaikan/anggap true)
+    const { data: settings } = await supabase
+        .from("global_settings")
+        .select("reviews_enabled")
+        .eq("id", 1)
+        .single();
+        
+    if (settings && settings.reviews_enabled === false) {
+        return NextResponse.json(
+            { error: "Pengiriman review saat ini sedang ditutup oleh Admin." },
+            { status: 403 }
+        );
+    }
+
+    let body;
+    try {
+        body = await req.json();
+    } catch (e) {
+        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
     // Validasi field utama
-    if (!body.name || !body.text) {
+    if (!body || !body.name || !body.text) {
         return NextResponse.json({ error: "Kolom name dan text wajib diisi." }, { status: 400 });
     }
 

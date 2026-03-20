@@ -147,7 +147,8 @@ export default function AdminPage() {
     const [auth, setAuth] = useState(false);
     const [user, setUser] = useState("");
     const [pass, setPass] = useState("");
-    const [tab, setTab] = useState<"paket" | "testimoni" | "jadwal">("paket");
+    const [tab, setTab] = useState<"paket" | "testimoni" | "jadwal" | "settings">("paket");
+    const [settings, setSettings] = useState({ reviews_enabled: true });
     const [toast, setToastState] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -175,10 +176,32 @@ export default function AdminPage() {
     useEffect(() => {
         fetch("/api/pakets").then(r => r.json()).then(setPakets);
         fetch("/api/reviews").then(r => r.json()).then(setReviews);
+        fetch("/api/settings").then(r => r.json()).then(data => data && setSettings(data)).catch(() => console.log("Settings table missing"));
     }, []);
 
     const showToast = (msg: string, type: "ok" | "err" = "ok") => { setToastState({ msg, type }); setTimeout(() => setToastState(null), 3000); };
     const f = (k: keyof Omit<Paket, "id">, v: unknown) => setForm(prev => ({ ...prev, [k]: v }));
+
+    // Global Settings Toggle
+    async function handleToggleReview(val: boolean) {
+        setSettings({ ...settings, reviews_enabled: val });
+        try {
+            const res = await fetch("/api/settings", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ reviews_enabled: val })
+            });
+            if (res.ok) {
+                showToast(val ? "Penerimaan review diaktifkan." : "Penerimaan review dinonaktifkan.");
+            } else {
+                setSettings({ ...settings, reviews_enabled: !val }); // rollback
+                showToast("Gagal menyimpan pengaturan", "err");
+            }
+        } catch {
+            setSettings({ ...settings, reviews_enabled: !val }); // rollback
+            showToast("Gagal menyimpan pengaturan", "err");
+        }
+    }
 
     // Auth
     async function handleLogin(e: React.FormEvent) {
@@ -656,6 +679,7 @@ export default function AdminPage() {
         { key: "paket", label: "Paket Perjalanan", icon: IoAirplaneOutline },
         { key: "jadwal", label: "Jadwal Perjalanan", icon: IoMapOutline },
         { key: "testimoni", label: "Testimoni", icon: IoChatbubblesOutline },
+        { key: "settings", label: "Pengaturan", icon: IoColorPaletteOutline },
     ];
 
     return (
@@ -779,6 +803,26 @@ export default function AdminPage() {
                     )}
 
                     {tab === "jadwal" && JadwalTab()}
+
+                    {tab === "settings" && (
+                        <Card>
+                            <CardHead icon={IoColorPaletteOutline} title="Pengaturan Situs" sub="Kelola fitur-fitur pengunjung pada website" />
+                            <div className="p-5 space-y-4 divide-y divide-gray-100">
+                                
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3">
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 text-sm">Terima Testimoni / Review</h3>
+                                        <p className="text-xs text-gray-500 mt-1">Jika dinonaktifkan, pengunjung tidak bisa mengirimkan review baru dari halaman utama.</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                        <input type="checkbox" className="sr-only peer" checked={settings.reviews_enabled} onChange={(e) => handleToggleReview(e.target.checked)} />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
+                                    </label>
+                                </div>
+                                
+                            </div>
+                        </Card>
+                    )}
                 </div>
             </main>
         </>
