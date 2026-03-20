@@ -147,7 +147,7 @@ export default function AdminPage() {
     const [auth, setAuth] = useState(false);
     const [user, setUser] = useState("");
     const [pass, setPass] = useState("");
-    const [tab, setTab] = useState<"paket" | "testimoni" | "jadwal" | "settings">("paket");
+    const [tab, setTab] = useState<"paket" | "testimoni" | "jadwal">("paket");
     const [settings, setSettings] = useState({ reviews_enabled: true });
     const [toast, setToastState] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
     const [showForm, setShowForm] = useState(false);
@@ -679,7 +679,6 @@ export default function AdminPage() {
         { key: "paket", label: "Paket Perjalanan", icon: IoAirplaneOutline },
         { key: "jadwal", label: "Jadwal Perjalanan", icon: IoMapOutline },
         { key: "testimoni", label: "Testimoni", icon: IoChatbubblesOutline },
-        { key: "settings", label: "Pengaturan", icon: IoColorPaletteOutline },
     ];
 
     return (
@@ -768,8 +767,25 @@ export default function AdminPage() {
                     )}
 
                     {tab === "testimoni" && (
-                        <Card>
-                            <CardHead icon={IoChatbubblesOutline} title="Daftar Testimoni" sub={`${reviews.length} testimoni terdaftar`} />
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHead icon={IoColorPaletteOutline} title="Pengaturan Testimoni" sub="Atur penerimaan testimoni dari pengunjung" />
+                                <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 text-sm">Terima Testimoni Baru</h3>
+                                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                                            Jika dinonaktifkan, formulir pengisian testimoni pada halaman utama akan disembunyikan. <br/>
+                                            <span className="text-teal-600 font-semibold bg-teal-50 px-1 py-0.5 rounded mr-1">Catatan:</span>Sistem juga membantu mencegah spam dengan membatasi maksimal 3 ulasan per menit dari IP yang sama.
+                                        </p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                        <input type="checkbox" className="sr-only peer" checked={settings.reviews_enabled} onChange={(e) => handleToggleReview(e.target.checked)} />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
+                                    </label>
+                                </div>
+                            </Card>
+                            <Card>
+                                <CardHead icon={IoChatbubblesOutline} title="Daftar Testimoni" sub={`${reviews.length} testimoni terdaftar`} />
                             {editReviewId && (
                                 <div className="p-5 border-b border-gray-100 bg-teal-50/40">
                                     <h3 className="font-bold text-teal-800 text-sm mb-4 flex items-center gap-1.5"><IoCreateOutline className="w-4 h-4" /> Edit Testimoni</h3>
@@ -800,29 +816,10 @@ export default function AdminPage() {
                                 ))}</div>
                             )}
                         </Card>
+                        </div>
                     )}
 
                     {tab === "jadwal" && JadwalTab()}
-
-                    {tab === "settings" && (
-                        <Card>
-                            <CardHead icon={IoColorPaletteOutline} title="Pengaturan Situs" sub="Kelola fitur-fitur pengunjung pada website" />
-                            <div className="p-5 space-y-4 divide-y divide-gray-100">
-                                
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3">
-                                    <div>
-                                        <h3 className="font-bold text-gray-900 text-sm">Terima Testimoni / Review</h3>
-                                        <p className="text-xs text-gray-500 mt-1">Jika dinonaktifkan, pengunjung tidak bisa mengirimkan review baru dari halaman utama.</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                        <input type="checkbox" className="sr-only peer" checked={settings.reviews_enabled} onChange={(e) => handleToggleReview(e.target.checked)} />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
-                                    </label>
-                                </div>
-                                
-                            </div>
-                        </Card>
-                    )}
                 </div>
             </main>
         </>

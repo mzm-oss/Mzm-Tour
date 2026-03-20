@@ -59,7 +59,7 @@ function ReviewCard({ r }: { r: Review }) {
     );
 }
 
-export default function Reviews({ initialReviews }: { initialReviews: Review[] }) {
+export default function Reviews({ initialReviews, reviewsEnabled = true }: { initialReviews: Review[], reviewsEnabled?: boolean }) {
     const [reviews, setReviews] = useState<Review[]>(initialReviews);
     const [showForm, setShowForm] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -178,16 +178,18 @@ export default function Reviews({ initialReviews }: { initialReviews: Review[] }
                 )}
 
                 {/* Tombol */}
-                <div className="text-center mb-6">
-                    <button onClick={() => setShowForm(!showForm)}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white transition-all duration-300 hover:brightness-110 hover:scale-105 shadow-md"
-                        style={{ backgroundColor: "#008080" }}>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        {showForm ? "Tutup Form" : "Tulis Pengalaman Ibadah Anda"}
-                    </button>
-                </div>
+                {reviewsEnabled && (
+                    <div className="text-center mb-6">
+                        <button onClick={() => setShowForm(!showForm)}
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white transition-all duration-300 hover:brightness-110 hover:scale-105 shadow-md"
+                            style={{ backgroundColor: "#008080" }}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            {showForm ? "Tutup Form" : "Tulis Pengalaman Ibadah Anda"}
+                        </button>
+                    </div>
+                )}
 
                 {/* Form */}
                 {showForm && (

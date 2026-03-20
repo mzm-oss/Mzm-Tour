@@ -20,6 +20,14 @@ export default async function Home() {
         .select("*")
         .order("created_at", { ascending: false });
 
+    // Fetch pengaturan global untuk form review
+    const { data: settings } = await supabase
+        .from("global_settings")
+        .select("reviews_enabled")
+        .eq("id", 1)
+        .single();
+    const reviewsEnabled = settings ? settings.reviews_enabled !== false : true;
+
     return (
         <>
             <Navbar />
@@ -27,7 +35,7 @@ export default async function Home() {
             <Services />
             <About />
             <Schedule />
-            <Reviews initialReviews={reviews ?? []} />
+            <Reviews initialReviews={reviews ?? []} reviewsEnabled={reviewsEnabled} />
             <Footer />
         </>
     );
