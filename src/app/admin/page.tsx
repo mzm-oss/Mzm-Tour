@@ -14,7 +14,7 @@ import {
     IoGridOutline, IoPricetagOutline, IoTimeOutline, IoLocationOutline,
     IoDocumentTextOutline, IoWalletOutline,
     IoChevronDown, IoCloseOutline, IoRocketOutline,
-    IoMapOutline, IoColorPaletteOutline, IoSaveOutline,
+    IoMapOutline, IoSettingsOutline, IoSaveOutline,
 } from "react-icons/io5";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -769,7 +769,7 @@ export default function AdminPage() {
                     {tab === "testimoni" && (
                         <div className="space-y-6">
                             <Card>
-                                <CardHead icon={IoColorPaletteOutline} title="Pengaturan Testimoni" sub="Atur penerimaan testimoni dari pengunjung" />
+                                <CardHead icon={IoSettingsOutline} title="Pengaturan Testimoni" sub="Atur penerimaan testimoni dari pengunjung" />
                                 <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div>
                                         <h3 className="font-bold text-gray-900 text-sm">Terima Testimoni Baru</h3>

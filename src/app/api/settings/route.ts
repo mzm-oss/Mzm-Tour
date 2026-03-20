@@ -17,6 +17,8 @@ export async function GET() {
     return NextResponse.json(data);
 }
 
+import { revalidatePath } from "next/cache";
+
 export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { reviews_enabled } = body;
@@ -30,6 +32,9 @@ export async function PUT(req: NextRequest) {
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Revalidasi homepage agar tombol form langsung hilang/muncul
+    revalidatePath("/");
 
     return NextResponse.json(data);
 }
