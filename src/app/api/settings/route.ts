@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { verifySession } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ export async function GET() {
 import { revalidatePath } from "next/cache";
 
 export async function PUT(req: NextRequest) {
+    if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const { reviews_enabled } = body;
 

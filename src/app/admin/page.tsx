@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import PackageNavbar from "@/components/PackageNavbar";
+import Image from "next/image";
 import { type Paket } from "@/lib/packagesData";
 import { type Review } from "@/lib/reviewsData";
 import {
@@ -12,9 +12,9 @@ import {
     IoAlertCircle, IoAirplaneOutline, IoStarOutline, IoStar, IoChevronForward,
     IoImageOutline, IoCloudUploadOutline, IoEyeOutline, IoListOutline,
     IoGridOutline, IoPricetagOutline, IoTimeOutline, IoLocationOutline,
-    IoDocumentTextOutline, IoWalletOutline,
+    IoDocumentTextOutline, IoWalletOutline, IoShieldCheckmarkOutline,
     IoChevronDown, IoCloseOutline, IoRocketOutline,
-    IoMapOutline, IoSettingsOutline, IoSaveOutline,
+    IoMapOutline, IoSettingsOutline, IoSaveOutline, IoLogOutOutline,
 } from "react-icons/io5";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -104,10 +104,9 @@ function ConfirmModal({ data, onConfirm, onCancel }: {
             <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className={`px-6 pt-7 pb-4 flex flex-col items-center text-center`}>
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-inner ${
-                        data.danger ? "bg-red-50" : "bg-amber-50"
-                    }`}>
-                        <svg viewBox="0 0 24 24" fill="none" className={`w-7 h-7 ${ data.danger ? "text-red-500" : "text-amber-500" }`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-inner ${data.danger ? "bg-red-50" : "bg-amber-50"
+                        }`}>
+                        <svg viewBox="0 0 24 24" fill="none" className={`w-7 h-7 ${data.danger ? "text-red-500" : "text-amber-500"}`}>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" fill="none" />
                         </svg>
                     </div>
@@ -124,11 +123,10 @@ function ConfirmModal({ data, onConfirm, onCancel }: {
                     </button>
                     <button
                         onClick={onConfirm}
-                        className={`flex-1 py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-95 shadow-md ${
-                            data.danger
-                                ? "bg-red-500 hover:bg-red-600 shadow-red-200"
-                                : "bg-teal-600 hover:bg-teal-700 shadow-teal-200"
-                        }`}
+                        className={`flex-1 py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-95 shadow-md ${data.danger
+                            ? "bg-red-500 hover:bg-red-600 shadow-red-200"
+                            : "bg-teal-600 hover:bg-teal-700 shadow-teal-200"
+                            }`}
                     >
                         {data.confirmLabel || "Konfirmasi"}
                     </button>
@@ -144,9 +142,10 @@ function ConfirmModal({ data, onConfirm, onCancel }: {
 export default function AdminPage() {
     const [pakets, setPakets] = useState<Paket[]>([]);
     const [reviews, setReviews] = useState<Review[]>([]);
-    const [auth, setAuth] = useState(false);
+    const [auth, setAuth] = useState<boolean | null>(null); // null = checking
     const [user, setUser] = useState("");
     const [pass, setPass] = useState("");
+    const [lockoutSecs, setLockoutSecs] = useState(0);
     const [tab, setTab] = useState<"paket" | "testimoni" | "jadwal">("paket");
     const [settings, setSettings] = useState({ reviews_enabled: true });
     const [toast, setToastState] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
@@ -173,11 +172,26 @@ export default function AdminPage() {
         setConfirmDialog({ title, msg, onConfirm, ...opts });
     }
 
+    // Check existing session on mount
     useEffect(() => {
+        fetch("/api/auth").then(r => r.json()).then(d => {
+            setAuth(d.authenticated === true);
+        }).catch(() => setAuth(false));
+    }, []);
+
+    useEffect(() => {
+        if (!auth) return;
         fetch("/api/pakets").then(r => r.json()).then(setPakets);
         fetch("/api/reviews").then(r => r.json()).then(setReviews);
         fetch("/api/settings").then(r => r.json()).then(data => data && setSettings(data)).catch(() => console.log("Settings table missing"));
-    }, []);
+    }, [auth]);
+
+    // Lockout countdown
+    useEffect(() => {
+        if (lockoutSecs <= 0) return;
+        const t = setTimeout(() => setLockoutSecs(s => s - 1), 1000);
+        return () => clearTimeout(t);
+    }, [lockoutSecs]);
 
     const showToast = (msg: string, type: "ok" | "err" = "ok") => { setToastState({ msg, type }); setTimeout(() => setToastState(null), 3000); };
     const f = (k: keyof Omit<Paket, "id">, v: unknown) => setForm(prev => ({ ...prev, [k]: v }));
@@ -206,6 +220,7 @@ export default function AdminPage() {
     // Auth
     async function handleLogin(e: React.FormEvent) {
         e.preventDefault();
+        if (lockoutSecs > 0) return;
         try {
             const res = await fetch("/api/login", {
                 method: "POST",
@@ -213,10 +228,23 @@ export default function AdminPage() {
                 body: JSON.stringify({ username: user, password: pass })
             });
             if (res.ok) { setAuth(true); showToast("Login berhasil!"); }
-            else { showToast("Username / password salah.", "err"); }
+            else {
+                const data = await res.json().catch(() => ({}));
+                if (res.status === 429 && data.retryAfterSeconds) {
+                    setLockoutSecs(data.retryAfterSeconds);
+                    showToast(`Terlalu banyak percobaan. Coba lagi dalam ${Math.ceil(data.retryAfterSeconds / 60)} menit.`, "err");
+                } else {
+                    showToast("Username / password salah.", "err");
+                }
+            }
         } catch {
             showToast("Terjadi kesalahan sistem.", "err");
         }
+    }
+
+    async function handleLogout() {
+        await fetch("/api/logout", { method: "POST" });
+        setAuth(false);
     }
 
     // Package CRUD
@@ -269,7 +297,7 @@ export default function AdminPage() {
                 setConfirmDialog(null);
                 // Optimistic UI
                 const u = pakets.filter(p => p.id !== id);
-                setPakets(u); 
+                setPakets(u);
                 showToast("Paket dihapus.");
                 // Fetch in background
                 fetch(`/api/pakets?id=${id}`, { method: "DELETE" }).catch(e => showToast("Gagal hapus di server", "err"));
@@ -297,9 +325,9 @@ export default function AdminPage() {
             const u = pakets.map(i => i.id === p.id ? { ...i, statusPublish: v as "Tersedia" | "Sudah Berangkat", tanggalBerangkat: newTgl } : i);
             setPakets(u);
             showToast(`Status "${p.nama}" diubah ke ${v}.`);
-            
+
             const dataToSave = { ...p, statusPublish: v, tanggalBerangkat: newTgl };
-            
+
             // Background Fetch
             fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dataToSave) })
                 .catch(() => showToast("Gagal mengubah status di server.", "err"))
@@ -321,13 +349,13 @@ export default function AdminPage() {
     async function handleSaveReview() {
         if (editReviewId) {
             const { id: _id, ...formData } = reviewForm as Review;
-            
+
             // Optimistic UI Update
             const u = reviews.map(r => r.id === editReviewId ? { ...r, ...formData } : r);
             setReviews(u as Review[]);
             showToast("Testimoni diperbarui.");
             setEditReviewId(null); setReviewForm({});
-            
+
             // Background Fetch (tanpa await dan tanpa fetch ulang seluruh daftar)
             fetch("/api/reviews", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editReviewId, ...formData }) })
                 .catch(() => showToast("Gagal memperbarui testimoni di server", "err"));
@@ -341,12 +369,12 @@ export default function AdminPage() {
             "Testimoni ini akan dihapus permanen dan tidak bisa dikembalikan.",
             () => {
                 setConfirmDialog(null);
-                
+
                 // Optimistic UI
                 const u = reviews.filter(r => r.id !== id);
                 setReviews(u);
                 showToast("Testimoni dihapus.");
-                
+
                 // Background Fetch
                 fetch(`/api/reviews?id=${id}`, { method: "DELETE" }).catch(() => showToast("Gagal menghapus di server.", "err"));
             },
@@ -364,29 +392,133 @@ export default function AdminPage() {
     const activePkgs = filtered.filter(p => p.statusPublish !== "Sudah Berangkat");
     const histPkgs = filtered.filter(p => p.statusPublish === "Sudah Berangkat");
 
+    // Admin Navbar (shared for login + dashboard)
+    function AdminNav({ showTabs = false }: { showTabs?: boolean }) {
+        return (
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-14 sm:h-16">
+                        {/* Logo */}
+                        <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
+                            <Image src="/logo.png" alt="MZM Tour" width={80} height={40} className="object-contain sm:w-[90px] sm:h-[45px]" />
+                        </Link>
+                        {/* Logout (only when logged in) */}
+                        {showTabs && (
+                            <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-red-600 transition px-3 py-1.5 rounded-lg hover:bg-red-50">
+                                <IoLogOutOutline className="w-4 h-4" />
+                                <span className="hidden sm:inline">Keluar</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </nav>
+        );
+    }
+
+    // ─── LOADING ──────────────────────────────────────────────────────────────
+    if (auth === null) return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="flex flex-col items-center gap-3">
+                <svg className="animate-spin w-8 h-8 text-teal-500" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+                <p className="text-sm text-gray-400 font-medium">Memverifikasi sesi...</p>
+            </div>
+        </div>
+    );
+
     // ─── LOGIN ──────────────────────────────────────────────────────────
     if (!auth) return (
         <>
-            <PackageNavbar />
             <Toast toast={toast} />
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-gray-100 px-4 pt-20 pb-10">
-                <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm border border-gray-100 overflow-hidden">
-                    <div className="px-8 pt-8 pb-6 text-center bg-gradient-to-b from-teal-700 to-teal-800 text-white">
-                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3"><IoLockClosedOutline className="w-7 h-7" /></div>
-                        <h1 className="text-xl font-extrabold">Admin Panel</h1>
-                        <p className="text-teal-200 text-xs mt-1 uppercase tracking-widest font-semibold">Akses Terbatas</p>
+            {/* Full screen split layout */}
+            <div className="min-h-screen flex flex-col md:flex-row">
+
+                {/* ── LEFT: Brand panel (hidden on mobile) ── */}
+                <div className="hidden md:flex md:w-2/5 lg:w-1/2 flex-col items-center justify-center relative overflow-hidden p-12"
+                    style={{ background: "linear-gradient(160deg, #012E2E 0%, #014E4E 55%, #017070 100%)" }}>
+                    {/* Decorative circles */}
+                    <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-white/5 pointer-events-none" />
+                    <div className="absolute top-1/3 -right-16 w-52 h-52 rounded-full bg-white/5 pointer-events-none" />
+                    <div className="absolute -bottom-20 left-1/4 w-64 h-64 rounded-full bg-teal-300/10 pointer-events-none" />
+
+                    {/* Brand content */}
+                    <div className="relative z-10 text-center">
+                        <Image src="/logo.png" alt="MZM Tour" width={130} height={65} className="object-contain mx-auto mb-8 drop-shadow-lg" />
+                        <h2 className="text-3xl font-extrabold text-white tracking-tight leading-tight mb-3">
+                            MZM Tour &amp;<br />Travel
+                        </h2>
+                        <p className="text-teal-200/80 text-sm leading-relaxed max-w-xs">
+                            Sahabat terpercaya menuju Baitullah. Kelola paket, jadwal keberangkatan, dan ulasan pelanggan.
+                        </p>
+                        {/* Divider */}
+                        <div className="flex items-center gap-3 mt-8 justify-center">
+                            <div className="h-px w-12 bg-white/20" />
+                            <span className="text-white/30 text-xs uppercase tracking-widest font-semibold">Admin</span>
+                            <div className="h-px w-12 bg-white/20" />
+                        </div>
                     </div>
-                    <form onSubmit={handleLogin} className="px-8 py-7 space-y-4">
-                        <div><Label icon={IoPersonOutline}>Username</Label><Input type="text" value={user} onChange={e => setUser(e.target.value)} placeholder="Masukkan username" required /></div>
-                        <div><Label icon={IoKeyOutline}>Password</Label><Input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" required /></div>
-                        <button type="submit" className="w-full flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-[0.98] text-white font-bold py-3 rounded-xl transition-all shadow-md mt-2">
-                            <IoLogInOutline className="w-5 h-5" /> Masuk
-                        </button>
-                    </form>
+                </div>
+
+                {/* ── RIGHT: Login form ── */}
+                <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-gray-50 relative overflow-hidden">
+
+                    {/* Mobile-only: teal gradient overlay */}
+                    <div className="absolute inset-0 md:hidden pointer-events-none"
+                        style={{ background: "linear-gradient(160deg, #012E2E 0%, #014E4E 55%, #017070 100%)" }} />
+
+                    {/* Mobile: Logo + label di atas form */}
+                    <div className="md:hidden relative z-10 flex flex-col items-center mb-8">
+                        <Image src="/logo.png" alt="MZM Tour" width={90} height={45} className="object-contain filter brightness-0 invert mb-2" />
+                        <span className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em]">Panel Admin</span>
+                    </div>
+
+                    {/* Form card */}
+                    <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
+                        <div className="mb-7">
+                            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Masuk ke Admin</h1>
+                            <p className="text-sm text-gray-400 mt-1">Masukkan kredensial untuk melanjutkan</p>
+                        </div>
+
+                        {/* Lockout warning */}
+                        {lockoutSecs > 0 && (
+                            <div className="mb-5 flex items-center gap-2.5 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                                <IoShieldCheckmarkOutline className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                <p className="text-xs text-red-600">Terlalu banyak percobaan. Tunggu <span className="font-bold tabular-nums">{Math.floor(lockoutSecs / 60)}:{String(lockoutSecs % 60).padStart(2, "0")}</span></p>
+                            </div>
+                        )}
+
+                        {/* Form */}
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div>
+                                <Label icon={IoPersonOutline}>Username</Label>
+                                <Input type="text" value={user} onChange={e => setUser(e.target.value)} placeholder="Masukkan username" required />
+                            </div>
+                            <div>
+                                <Label icon={IoKeyOutline}>Password</Label>
+                                <Input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" required />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={lockoutSecs > 0}
+                                className="w-full flex items-center justify-center gap-2 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                                style={{ background: lockoutSecs > 0 ? "#9ca3af" : "linear-gradient(135deg, #014E4E, #008080)" }}
+                            >
+                                <IoLogInOutline className="w-5 h-5" />
+                                {lockoutSecs > 0 ? `Tunggu ${lockoutSecs}s...` : "Masuk"}
+                            </button>
+                        </form>
+
+                        <p className="text-center text-[11px] text-gray-300 mt-8">
+                            © {new Date().getFullYear()} MZM Tour. All rights reserved.
+                        </p>
+                    </div>
                 </div>
             </div>
         </>
     );
+
 
     function FormPanel() {
         return (
@@ -446,53 +578,65 @@ export default function AdminPage() {
         );
     }
 
-    // ─── Package Row ────────────────────────────────────────────────────
+    // ─── Package Row ───────────────────────────────────────────────────
     function PaketRow({ p, hist = false }: { p: Paket; hist?: boolean }) {
         return (
-            <div className={`flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition ${hist ? "opacity-50" : ""}`}>
-                <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    {p.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image} alt={p.nama} className="w-full h-full object-cover" />
-                    ) : <IoImageOutline className="w-5 h-5 text-gray-300" />}
-                </div>
-                <Badge label={hist ? "RIWAYAT" : p.kategori} color={hist ? "#9ca3af" : (KAT_COLORS[p.kategori] || "#008080")} />
-                {!hist && p.kategori === "umroh" && p.tipeUmroh && (<span className={`text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full ${p.tipeUmroh === "plus" ? "bg-indigo-100 text-indigo-700 border border-indigo-200" : "bg-teal-50 text-teal-700 border border-teal-200"}`}>{p.tipeUmroh === "plus" ? "Plus" : "Reguler"}</span>)}
-                <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm truncate whitespace-normal">{p.nama}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate flex items-center gap-1"><IoWalletOutline className="w-3 h-3 flex-shrink-0" /> {p.harga} · {p.durasi}{p.jadwal ? ` · ${p.jadwal}` : ""}</p>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <div className="relative hidden sm:block">
-                        {savingStatusId === p.id ? (
-                            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-1.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
-                                <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                                Menyimpan...
-                            </span>
-                        ) : (
-                        <select
-                            value={p.statusPublish || "Tersedia"}
-                            disabled={!!savingStatusId}
-                            onChange={(e) => {
-                                const newStatus = e.target.value;
-                                askConfirm(
-                                    `Ubah Status Paket`,
-                                    `Yakin ingin mengubah status "${p.nama}" menjadi "${newStatus}"?`,
-                                    () => { setConfirmDialog(null); handleStatusChange(p, newStatus); },
-                                    { confirmLabel: "Ya, Ubah", danger: newStatus === "Sudah Berangkat" }
-                                );
-                            }}
-                            className={`appearance-none text-xs font-bold rounded-full pl-4 pr-8 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${hist ? "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 focus:ring-2 focus:ring-gray-200" : "bg-white border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 focus:ring-2 focus:ring-teal-500/20"}`}
-                        >
-                            <option value="Tersedia">Tersedia</option>
-                            <option value="Sudah Berangkat">Sudah Berangkat</option>
-                        </select>
-                        )}
-                        {savingStatusId !== p.id && <IoChevronDown className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${hist ? "text-gray-400" : "text-teal-500"}`} />}
+            <div className={`px-3 sm:px-4 py-3 hover:bg-gray-50 transition ${hist ? "opacity-50" : ""}`}>
+                {/* === ROW 1: image + badge + name === */}
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        {p.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.image} alt={p.nama} className="w-full h-full object-cover" />
+                        ) : <IoImageOutline className="w-5 h-5 text-gray-300" />}
                     </div>
-                    <div className="flex sm:flex-row flex-col gap-1.5">
-                        <button onClick={() => handleEdit(p)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"><IoCreateOutline className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete(p.id)} className="p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition"><IoTrashOutline className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Badge label={hist ? "RIWAYAT" : p.kategori} color={hist ? "#9ca3af" : (KAT_COLORS[p.kategori] || "#008080")} />
+                        {!hist && p.kategori === "umroh" && p.tipeUmroh && (
+                            <span className={`text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full ${p.tipeUmroh === "plus" ? "bg-indigo-100 text-indigo-700 border border-indigo-200" : "bg-teal-50 text-teal-700 border border-teal-200"}`}>
+                                {p.tipeUmroh === "plus" ? "Plus" : "Reguler"}
+                            </span>
+                        )}
+                    </div>
+                    <p className="font-semibold text-gray-900 text-sm flex-1 min-w-0 truncate">{p.nama}</p>
+                </div>
+
+                {/* === ROW 2: price + status + actions === */}
+                <div className="flex items-center justify-between gap-2 mt-2">
+                    {/* Price info */}
+                    <p className="text-xs text-gray-400 flex items-center gap-1 min-w-0 truncate">
+                        <IoWalletOutline className="w-3 h-3 flex-shrink-0" /> {p.harga} · {p.durasi}{p.jadwal ? ` · ${p.jadwal}` : ""}
+                    </p>
+                    {/* Status + buttons */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <div className="relative">
+                            {savingStatusId === p.id ? (
+                                <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
+                                    <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                                </span>
+                            ) : (
+                                <select
+                                    value={p.statusPublish || "Tersedia"}
+                                    disabled={!!savingStatusId}
+                                    onChange={(e) => {
+                                        const newStatus = e.target.value;
+                                        askConfirm(
+                                            `Ubah Status Paket`,
+                                            `Yakin ingin mengubah status "${p.nama}" menjadi "${newStatus}"?`,
+                                            () => { setConfirmDialog(null); handleStatusChange(p, newStatus); },
+                                            { confirmLabel: "Ya, Ubah", danger: newStatus === "Sudah Berangkat" }
+                                        );
+                                    }}
+                                    className={`appearance-none text-xs font-bold rounded-full pl-2.5 pr-6 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${hist ? "bg-white border-gray-200 text-gray-500 hover:bg-gray-50" : "bg-white border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300"}`}
+                                >
+                                    <option value="Tersedia">Tersedia</option>
+                                    <option value="Sudah Berangkat">Sudah Berangkat</option>
+                                </select>
+                            )}
+                            {savingStatusId !== p.id && <IoChevronDown className={`pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 ${hist ? "text-gray-400" : "text-teal-500"}`} />}
+                        </div>
+                        <button onClick={() => handleEdit(p)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"><IoCreateOutline className="w-4 h-4" /></button>
+                        <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition"><IoTrashOutline className="w-4 h-4" /></button>
                     </div>
                 </div>
             </div>
@@ -523,17 +667,17 @@ export default function AdminPage() {
                 async () => {
                     setConfirmDialog(null);
                     // Pindahkan Update State ke atas agar Instan!
-                    const u = pakets.map(p => { 
-                        if (p.id !== pid) return p; 
-                        const d = [...(p.tanggalBerangkat || [])]; 
-                        d[idx] = { ...d[idx], status: s as "tersedia" | "terbatas" | "full" | "berangkat" }; 
+                    const u = pakets.map(p => {
+                        if (p.id !== pid) return p;
+                        const d = [...(p.tanggalBerangkat || [])];
+                        d[idx] = { ...d[idx], status: s as "tersedia" | "terbatas" | "full" | "berangkat" };
                         const today = new Date().toISOString().split("T")[0];
                         const isAllBerangkat = d.length > 0 && d.every(tgl => tgl.status === "berangkat" || tgl.tanggal < today);
                         const newStatusPublish = (isAllBerangkat ? "Sudah Berangkat" : "Tersedia") as "Tersedia" | "Sudah Berangkat";
-                        return { ...p, statusPublish: newStatusPublish, tanggalBerangkat: d }; 
+                        return { ...p, statusPublish: newStatusPublish, tanggalBerangkat: d };
                     });
                     setPakets(u);
-                    
+
                     const target = u.find(p => p.id === pid);
                     if (target) {
                         if (target.statusPublish === "Sudah Berangkat") {
@@ -557,7 +701,7 @@ export default function AdminPage() {
                     // Update state Instan
                     const u = pakets.map(p => p.id !== pid ? p : { ...p, tanggalBerangkat: (p.tanggalBerangkat || []).filter((_, i) => i !== idx) });
                     setPakets(u); showToast("Jadwal dihapus.");
-                    
+
                     const target = u.find(p => p.id === pid);
                     if (target) fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
                 },
@@ -566,16 +710,16 @@ export default function AdminPage() {
         }
         async function addDate() {
             if (!jadwalNewDate || !jadwalNewPaket) { showToast("Pilih paket & tanggal.", "err"); return; }
-            
+
             // Instan UI update
             const u = pakets.map(p => { if (p.id !== jadwalNewPaket) return p; if ((p.tanggalBerangkat || []).some(t => t.tanggal === jadwalNewDate)) { showToast("Tanggal sudah ada.", "err"); return p; } return { ...p, tanggalBerangkat: [...(p.tanggalBerangkat || []), { tanggal: jadwalNewDate, status: "tersedia" as const }].sort((a, b) => a.tanggal.localeCompare(b.tanggal)) }; });
             const target = u.find(p => p.id === jadwalNewPaket);
-            
+
             // Validasi gagal
-            if (target && (target.tanggalBerangkat?.length === pakets.find(a=>a.id === jadwalNewPaket)?.tanggalBerangkat?.length)) { return; }
-            
+            if (target && (target.tanggalBerangkat?.length === pakets.find(a => a.id === jadwalNewPaket)?.tanggalBerangkat?.length)) { return; }
+
             setPakets(u); setJadwalNewDate(""); showToast("Jadwal ditambahkan.");
-            
+
             if (target) fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
         }
 
@@ -677,46 +821,47 @@ export default function AdminPage() {
     // ─── DASHBOARD ──────────────────────────────────────────────────────
     const tabList: { key: typeof tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
         { key: "paket", label: "Paket Perjalanan", icon: IoAirplaneOutline },
-        { key: "jadwal", label: "Jadwal Perjalanan", icon: IoMapOutline },
+        { key: "jadwal", label: "Jadwal Keberangkatan", icon: IoMapOutline },
         { key: "testimoni", label: "Testimoni", icon: IoChatbubblesOutline },
     ];
-
     return (
-        <>
-            <PackageNavbar />
-            <main className="min-h-screen pt-16 bg-gray-50">
-                <Toast toast={toast} />
-                <ConfirmModal 
-                    data={confirmDialog} 
-                    onConfirm={() => confirmDialog?.onConfirm()} 
-                    onCancel={() => setConfirmDialog(null)} 
-                />
+        <div className="min-h-screen bg-gray-50/50 pb-20">
+            <AdminNav showTabs />
 
-                {/* Header */}
-                <div className="text-white" style={{ background: "linear-gradient(135deg, #014E4E 0%, #008080 100%)" }}>
-                    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center"><IoAirplaneOutline className="w-5 h-5" /></div>
-                                <div><h1 className="text-xl font-extrabold tracking-tight">Admin Panel</h1><p className="text-white/60 text-xs mt-0.5">Kelola paket perjalanan, jadwal & testimoni</p></div>
-                            </div>
-                            {tab === "paket" && (
-                                <button onClick={() => { setShowForm(!showForm); resetForm(); }}
-                                    className="self-start sm:self-auto flex items-center gap-2 bg-white text-teal-700 font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-teal-50 transition shadow">
-                                    {showForm ? <><IoCloseCircleOutline className="w-4 h-4" /> Tutup Form</> : <><IoAddCircleOutline className="w-4 h-4" /> Tambah Paket</>}
-                                </button>
-                            )}
+            {/* Green gradient header with tab navigation */}
+            <div className="text-white pt-14 sm:pt-16" style={{ background: "linear-gradient(135deg, #014E4E 0%, #008080 100%)" }}>
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0"><IoAirplaneOutline className="w-4 h-4 sm:w-5 sm:h-5" /></div>
+                            <div><h1 className="text-lg sm:text-xl font-extrabold tracking-tight">Admin Panel</h1><p className="text-white/60 text-xs mt-0.5">Kelola paket perjalanan, jadwal & testimoni</p></div>
                         </div>
-                        <div className="flex flex-wrap gap-2 mt-5 bg-white/10 p-1.5 rounded-xl w-fit xl:w-full">
-                            {tabList.map(t => (
-                                <button key={t.key} onClick={() => setTab(t.key)}
-                                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${tab === t.key ? "bg-white text-teal-700 shadow" : "text-white/80 hover:text-white hover:bg-white/15"}`}>
-                                    <t.icon className="w-4 h-4" /> {t.label}
-                                </button>
-                            ))}
-                        </div>
+                        {tab === "paket" && (
+                            <button onClick={() => { setShowForm(!showForm); resetForm(); }}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-teal-700 font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-teal-50 transition shadow">
+                                {showForm ? <><IoCloseCircleOutline className="w-4 h-4" /> Tutup Form</> : <><IoAddCircleOutline className="w-4 h-4" /> Tambah Paket</>}
+                            </button>
+                        )}
+                    </div>
+                    {/* Tabs — scrollable on mobile */}
+                    <div className="flex gap-1.5 mt-4 sm:mt-5 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+                        {tabList.map(t => (
+                            <button key={t.key} onClick={() => setTab(t.key)}
+                                className={`flex items-center gap-1.5 px-3 py-2 sm:px-4 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 ${tab === t.key ? "bg-white text-teal-700 shadow" : "text-white/80 hover:text-white hover:bg-white/15"}`}>
+                                <t.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {t.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
+            </div>
+
+            <main className="min-h-screen">
+                <Toast toast={toast} />
+                <ConfirmModal
+                    data={confirmDialog}
+                    onConfirm={() => confirmDialog?.onConfirm()}
+                    onCancel={() => setConfirmDialog(null)}
+                />
 
                 {/* Body */}
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 py-7 space-y-6">
@@ -727,7 +872,7 @@ export default function AdminPage() {
 
                             <div className="flex items-center justify-between flex-wrap gap-3">
                                 <h2 className="text-sm font-bold text-gray-800 flex items-center gap-1.5"><IoAirplaneOutline className="w-4 h-4 text-teal-600" /> Daftar Paket <span className="text-gray-400 font-normal ml-1">({activePkgs.length})</span></h2>
-                                <div className="flex gap-1.5 flex-wrap">{(["all", "umroh", "haji", "wisata"] as const).map(k => <button key={k} onClick={() => { setFilterKat(k); if (k !== "umroh") setFilterUmrohType("all"); }} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${filterKat === k ? "bg-teal-700 text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>{k === "all" ? "Semua" : KAT_LABELS[k]}</button>)}</div>
+                                <div className="flex gap-1.5 flex-wrap">{(["all", "umroh", "haji", "wisata"] as const).map(k => <button key={k} onClick={() => { setFilterKat(k as any); if (k !== "umroh") setFilterUmrohType("all"); }} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${filterKat === k ? "bg-teal-700 text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>{k === "all" ? "Semua" : KAT_LABELS[k]}</button>)}</div>
                             </div>
                             {filterKat === "umroh" && (
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -774,7 +919,7 @@ export default function AdminPage() {
                                     <div>
                                         <h3 className="font-bold text-gray-900 text-sm">Terima Testimoni Baru</h3>
                                         <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                                            Jika dinonaktifkan, formulir pengisian testimoni pada halaman utama akan disembunyikan. <br/>
+                                            Jika dinonaktifkan, formulir pengisian testimoni pada halaman utama akan disembunyikan. <br />
                                             <span className="text-teal-600 font-semibold bg-teal-50 px-1 py-0.5 rounded mr-1">Catatan:</span>Sistem juga membantu mencegah spam dengan membatasi maksimal 3 ulasan per menit dari IP yang sama.
                                         </p>
                                     </div>
@@ -786,42 +931,42 @@ export default function AdminPage() {
                             </Card>
                             <Card>
                                 <CardHead icon={IoChatbubblesOutline} title="Daftar Testimoni" sub={`${reviews.length} testimoni terdaftar`} />
-                            {editReviewId && (
-                                <div className="p-5 border-b border-gray-100 bg-teal-50/40">
-                                    <h3 className="font-bold text-teal-800 text-sm mb-4 flex items-center gap-1.5"><IoCreateOutline className="w-4 h-4" /> Edit Testimoni</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                                        <div><Label icon={IoPersonOutline}>Nama</Label><Input type="text" value={reviewForm.name || ""} onChange={e => setReviewForm({ ...reviewForm, name: e.target.value })} /></div>
-                                        <div><Label icon={IoStarOutline}>Rating</Label><Select value={reviewForm.rating || 5} onChange={e => setReviewForm({ ...reviewForm, rating: Number(e.target.value) })}>{[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{n} Bintang {"⭐".repeat(n)}</option>)}</Select></div>
-                                        <div className="sm:col-span-2"><Label icon={IoDocumentTextOutline}>Pesan</Label><Textarea value={reviewForm.text || ""} onChange={e => setReviewForm({ ...reviewForm, text: e.target.value })} rows={3} /></div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={handleSaveReview} className="flex items-center gap-1.5 px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-sm transition"><IoSaveOutline className="w-4 h-4" /> Simpan</button>
-                                        <button onClick={() => { setEditReviewId(null); setReviewForm({}); }} className="flex items-center gap-1.5 px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition"><IoCloseOutline className="w-4 h-4" /> Batal</button>
-                                    </div>
-                                </div>
-                            )}
-                            {reviews.length === 0 ? <Empty icon={IoChatbubblesOutline} msg="Belum ada testimoni" /> : (
-                                <div className="divide-y divide-gray-100">{reviews.map(r => (
-                                    <div key={r.id} className="flex flex-col sm:flex-row gap-4 p-5 hover:bg-gray-50 transition">
-                                        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-sm">{r.name?.charAt(0)?.toUpperCase() || "?"}</div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex flex-wrap items-center gap-2 mb-1"><h4 className="font-bold text-gray-900 text-sm">{r.name}</h4><span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold border border-yellow-200 flex items-center gap-0.5"><IoStar className="w-3 h-3" /> {r.rating}</span><span className="text-xs text-gray-400 flex items-center gap-1 whitespace-nowrap"><IoCalendarOutline className="w-3 h-3 flex-shrink-0" /> {r.date}</span>{r.location && <span className="text-xs text-gray-400 flex items-center gap-1 whitespace-nowrap"><IoLocationOutline className="w-3 h-3 flex-shrink-0" /> {r.location}</span>}</div>
-                                            <p className="text-sm text-gray-600 line-clamp-2 md:line-clamp-none">&ldquo;{r.text}&rdquo;</p>
+                                {editReviewId && (
+                                    <div className="p-5 border-b border-gray-100 bg-teal-50/40">
+                                        <h3 className="font-bold text-teal-800 text-sm mb-4 flex items-center gap-1.5"><IoCreateOutline className="w-4 h-4" /> Edit Testimoni</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                            <div><Label icon={IoPersonOutline}>Nama</Label><Input type="text" value={reviewForm.name || ""} onChange={e => setReviewForm({ ...reviewForm, name: e.target.value })} /></div>
+                                            <div><Label icon={IoStarOutline}>Rating</Label><Select value={reviewForm.rating || 5} onChange={e => setReviewForm({ ...reviewForm, rating: Number(e.target.value) })}>{[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{n} Bintang {"⭐".repeat(n)}</option>)}</Select></div>
+                                            <div className="sm:col-span-2"><Label icon={IoDocumentTextOutline}>Pesan</Label><Textarea value={reviewForm.text || ""} onChange={e => setReviewForm({ ...reviewForm, text: e.target.value })} rows={3} /></div>
                                         </div>
-                                        <div className="flex gap-1.5 sm:flex-col sm:w-20 flex-shrink-0">
-                                            <button onClick={() => handleEditReview(r)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition"><IoCreateOutline className="w-3.5 h-3.5" /> Edit</button>
-                                            <button onClick={() => handleDeleteReview(r.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-500 hover:bg-red-100 transition"><IoTrashOutline className="w-3.5 h-3.5" /> Hapus</button>
+                                        <div className="flex gap-2">
+                                            <button onClick={handleSaveReview} className="flex items-center gap-1.5 px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-sm transition"><IoSaveOutline className="w-4 h-4" /> Simpan</button>
+                                            <button onClick={() => { setEditReviewId(null); setReviewForm({}); }} className="flex items-center gap-1.5 px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition"><IoCloseOutline className="w-4 h-4" /> Batal</button>
                                         </div>
                                     </div>
-                                ))}</div>
-                            )}
-                        </Card>
+                                )}
+                                {reviews.length === 0 ? <Empty icon={IoChatbubblesOutline} msg="Belum ada testimoni" /> : (
+                                    <div className="divide-y divide-gray-100">{reviews.map(r => (
+                                        <div key={r.id} className="flex flex-col sm:flex-row gap-4 p-5 hover:bg-gray-50 transition">
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-sm">{r.name?.charAt(0)?.toUpperCase() || "?"}</div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2 mb-1"><h4 className="font-bold text-gray-900 text-sm">{r.name}</h4><span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold border border-yellow-200 flex items-center gap-0.5"><IoStar className="w-3 h-3" /> {r.rating}</span><span className="text-xs text-gray-400 flex items-center gap-1 whitespace-nowrap"><IoCalendarOutline className="w-3 h-3 flex-shrink-0" /> {r.date}</span>{r.location && <span className="text-xs text-gray-400 flex items-center gap-1 whitespace-nowrap"><IoLocationOutline className="w-3 h-3 flex-shrink-0" /> {r.location}</span>}</div>
+                                                <p className="text-sm text-gray-600 line-clamp-2 md:line-clamp-none">&ldquo;{r.text}&rdquo;</p>
+                                            </div>
+                                            <div className="flex gap-1.5 sm:flex-col sm:w-20 flex-shrink-0">
+                                                <button onClick={() => handleEditReview(r)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition"><IoCreateOutline className="w-3.5 h-3.5" /> Edit</button>
+                                                <button onClick={() => handleDeleteReview(r.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-500 hover:bg-red-100 transition"><IoTrashOutline className="w-3.5 h-3.5" /> Hapus</button>
+                                            </div>
+                                        </div>
+                                    ))}</div>
+                                )}
+                            </Card>
                         </div>
                     )}
 
                     {tab === "jadwal" && JadwalTab()}
                 </div>
             </main>
-        </>
+        </div>
     );
 }

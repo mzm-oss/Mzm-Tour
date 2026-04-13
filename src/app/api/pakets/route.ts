@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import type { Paket } from "@/lib/packagesData";
+import { verifySession } from "@/lib/auth";
 
 // Helper: invalidate seluruh cache Next.js agar data baru langsung tampil di semua page
 function revalidateAllPaketPages() {
@@ -119,6 +120,7 @@ async function uploadImageToStorage(base64Data: string, paketId: string): Promis
 
 // POST /api/pakets
 export async function POST(req: NextRequest) {
+    if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const id = body.id || `pkg-${Date.now()}`;
     
@@ -139,6 +141,7 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/pakets
 export async function PUT(req: NextRequest) {
+    if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const { id, ...rest } = body;
     
@@ -162,6 +165,7 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/pakets?id=xxx
 export async function DELETE(req: NextRequest) {
+    if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
