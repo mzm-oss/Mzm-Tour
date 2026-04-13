@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseAdmin } from "@/lib/supabase";
 import { verifySession } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
@@ -25,12 +25,13 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { reviews_enabled } = body;
 
-    const { data, error } = await supabase
+    // Gunakan supabaseAdmin (Service Role) untuk bypass RLS pada tabel global_settings
+    const { data, error } = await supabaseAdmin
         .from("global_settings")
         .upsert({ id: 1, reviews_enabled })
         .select()
         .single();
-        
+
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

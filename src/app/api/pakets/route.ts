@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseAdmin } from "@/lib/supabase";
 import type { Paket } from "@/lib/packagesData";
 import { verifySession } from "@/lib/auth";
 
@@ -98,7 +98,7 @@ async function uploadImageToStorage(base64Data: string, paketId: string): Promis
         const buffer = Buffer.from(matches[2], 'base64');
         const fileName = `${paketId}-${Date.now()}.${ext}`;
 
-        const { error } = await supabase.storage
+        const { error } = await supabaseAdmin.storage
             .from('public-images')
             .upload(fileName, buffer, { contentType: mimeType, upsert: true });
 
@@ -107,7 +107,7 @@ async function uploadImageToStorage(base64Data: string, paketId: string): Promis
             return null;
         }
 
-        const { data: publicUrlData } = supabase.storage
+        const { data: publicUrlData } = supabaseAdmin.storage
             .from('public-images')
             .getPublicUrl(fileName);
 
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
     if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const id = body.id || `pkg-${Date.now()}`;
-    
+
     // Periksa apakah ada gambar base64 baru
     let finalImageUrl = body.image;
     if (finalImageUrl && finalImageUrl.startsWith("data:image")) {
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
 
     const row = paketToRow({ ...body, id, image: finalImageUrl });
 
-    const { data, error } = await supabase.from("pakets").insert([row]).select().single();
+    const { data, error } = await supabaseAdmin.from("pakets").insert([row]).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     revalidateAllPaketPages();
     return NextResponse.json(rowToPaket(data as Record<string, unknown>));
@@ -144,20 +144,20 @@ export async function PUT(req: NextRequest) {
     if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const { id, ...rest } = body;
-    
+
     // Periksa apakah ada gambar base64 baru yang diedit
     let finalImageUrl = rest.image;
     if (finalImageUrl && finalImageUrl.startsWith("data:image")) {
         const uploadedUrl = await uploadImageToStorage(finalImageUrl, id);
         if (uploadedUrl) finalImageUrl = uploadedUrl;
     } else if (finalImageUrl === "") {
-         finalImageUrl = null;
+        finalImageUrl = null;
     }
 
     const row = paketToRow({ ...rest, image: finalImageUrl });
     delete (row as Record<string, unknown>).id;
 
-    const { data, error } = await supabase.from("pakets").update(row).eq("id", id).select().single();
+    const { data, error } = await supabaseAdmin.from("pakets").update(row).eq("id", id).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     revalidateAllPaketPages();
     return NextResponse.json(rowToPaket(data as Record<string, unknown>));
@@ -169,7 +169,7 @@ export async function DELETE(req: NextRequest) {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-    const { error } = await supabase.from("pakets").delete().eq("id", id);
+    const { error } = await supabaseAdmin.from("pakets").delete().eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     revalidateAllPaketPages();
     return NextResponse.json({ ok: true });

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseAdmin } from "@/lib/supabase";
 import { verifySession } from "@/lib/auth";
 
 // Fungsi ringan untuk mencegah XSS tanpa membuat server crash
 function escapeHTML(str: string) {
     if (!str) return "";
-    return str.replace(/[&<>'"]/g, 
+    return str.replace(/[&<>'"]/g,
         tag => ({
             '&': '&amp;',
             '<': '&lt;',
@@ -52,7 +52,7 @@ async function uploadImageToStorage(base64Data: string, reviewId: string): Promi
         const buffer = Buffer.from(matches[2], 'base64');
         const fileName = `rev-${reviewId}-${Date.now()}.${ext}`;
 
-        const { error } = await supabase.storage
+        const { error } = await supabaseAdmin.storage
             .from('public-images')
             .upload(fileName, buffer, { contentType: mimeType, upsert: true });
 
@@ -61,7 +61,7 @@ async function uploadImageToStorage(base64Data: string, reviewId: string): Promi
             return null;
         }
 
-        const { data: publicUrlData } = supabase.storage
+        const { data: publicUrlData } = supabaseAdmin.storage
             .from('public-images')
             .getPublicUrl(fileName);
 
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
         .select("reviews_enabled")
         .eq("id", 1)
         .single();
-        
+
     if (settings && settings.reviews_enabled === false) {
         return NextResponse.json(
             { error: "Pengiriman review saat ini sedang ditutup oleh Admin." },
@@ -131,17 +131,17 @@ export async function POST(req: NextRequest) {
 
     // Cek ulang setelah dibersihkan (kalau isi script iseng semua, pas dibersihkan jadi kosong)
     if (!cleanName || !cleanText) {
-         return NextResponse.json({ error: "Input mengandung karakter tidak diizinkan." }, { status: 400 });
+        return NextResponse.json({ error: "Input mengandung karakter tidak diizinkan." }, { status: 400 });
     }
 
     const id = `rev-${Date.now()}`;
-    
+
     let finalImageUrl = body.image;
     if (finalImageUrl && finalImageUrl.startsWith("data:image")) {
         const uploadedUrl = await uploadImageToStorage(finalImageUrl, id);
         if (uploadedUrl) finalImageUrl = uploadedUrl;
     }
-    
+
     if (!finalImageUrl) {
         finalImageUrl = `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`;
     }
@@ -156,12 +156,12 @@ export async function POST(req: NextRequest) {
         date: body.date || new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(new Date()),
     };
 
-    const { data, error } = await supabase.from("reviews").insert([review]).select().single();
+    const { data, error } = await supabaseAdmin.from("reviews").insert([review]).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    
+
     // Perbarui cache halaman utama agar testimoni langsung muncul
     revalidatePath("/");
-    
+
     return NextResponse.json(data);
 }
 
@@ -181,11 +181,11 @@ export async function PUT(req: NextRequest) {
     }
     rest.image = finalImageUrl;
 
-    const { data, error } = await supabase.from("reviews").update(rest).eq("id", id).select().single();
+    const { data, error } = await supabaseAdmin.from("reviews").update(rest).eq("id", id).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     revalidatePath("/");
-    
+
     return NextResponse.json(data);
 }
 
@@ -195,10 +195,10 @@ export async function DELETE(req: NextRequest) {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-    const { error } = await supabase.from("reviews").delete().eq("id", id);
+    const { error } = await supabaseAdmin.from("reviews").delete().eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    
+
     revalidatePath("/");
-    
+
     return NextResponse.json({ ok: true });
 }
