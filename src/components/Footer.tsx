@@ -153,9 +153,9 @@ export default function Footer() {
                   +62 823-1100-0853
                 </a>
               </li>
-              <li className="flex items-center gap-3 text-white/75 text-sm">
+              <li className="flex items-start gap-3 text-white/75 text-sm">
                 <svg
-                  className="w-4 h-4 flex-shrink-0 text-teal-400"
+                  className="w-4 h-4 flex-shrink-0 mt-0.5 text-teal-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -167,7 +167,9 @@ export default function Footer() {
                     d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                   />
                 </svg>
-                <span>info@mzmtravel.com</span>
+                <span className="break-all leading-relaxed">
+                  mzmsahabatmenujubaitullah@gmail.com
+                </span>
               </li>
               <li className="flex items-start gap-3 text-white/75 text-sm">
                 <svg

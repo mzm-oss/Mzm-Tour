@@ -14,7 +14,11 @@ const galleryImages = [
     { src: "/img/tentang-kami/momen-kebahagiaan-8.jpeg", alt: "Momen 8" },
     { src: "/img/tentang-kami/momen-kebahagiaan-9.jpeg", alt: "Momen 9" },
     { src: "/img/tentang-kami/momen-kebahagiaan-10.jpeg", alt: "Momen 10" },
-
+    { src: "/img/tentang-kami/momen-kebahagiaan-11.jpeg", alt: "Momen 11" },
+    { src: "/img/tentang-kami/momen-kebahagiaan-12.jpeg", alt: "Momen 12" },
+    { src: "/img/tentang-kami/momen-kebahagiaan-13.jpeg", alt: "Momen 13" },
+    { src: "/img/tentang-kami/momen-kebahagiaan-14.jpeg", alt: "Momen 14" },
+    { src: "/img/tentang-kami/momen-kebahagiaan-15.jpeg", alt: "Momen 15" },
 ];
 
 const reuniImages = [
@@ -189,9 +193,7 @@ export default function GalleryScroll() {
                 >
                     Reuni Jamaah
                     {/* badge */}
-                    <span className="bg-amber-400 text-amber-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full leading-none">
-                        BARU
-                    </span>
+                    
                 </button>
             </div>
 
