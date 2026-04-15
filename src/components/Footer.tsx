@@ -24,7 +24,7 @@ export default function Footer() {
             <p className="text-white/75 text-sm leading-relaxed mb-6">
               Penyelenggara resmi perjalanan ibadah Umroh dan Haji yang
               mengutamakan pelayanan sesuai sunnah dan kenyamanan jamaah sejak
-              2025.
+              2023.
             </p>
             {/* Social Icons */}
             <div className="flex gap-3 mt-auto">
@@ -277,8 +277,7 @@ export default function Footer() {
         {/* Garis & Copyright */}
         <div className="border-t border-white/10 pt-6 text-center text-white/40 text-xs">
           <p>
-            &copy; 2026 MZM Travel. All Rights Reserved. &nbsp;·&nbsp; Izin
-            Resmi PPIU No. 123/2021 – Kemenag RI
+            &copy; 2026 MZM Travel. All Rights Reserved. &nbsp;
           </p>
         </div>
       </div>
