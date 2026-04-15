@@ -884,38 +884,46 @@ export default function AdminPage() {
                                     const [year, mStr, day] = e.tgl.split("-");
                                     const mIdx = parseInt(mStr) - 1;
                                     return (
-                                        <div key={`hist-${e.pid}-${e.idx}`} className="flex items-start gap-3 px-4 py-3.5 bg-gray-50/30 opacity-60 hover:opacity-100 transition border-b border-gray-50 last:border-0">
-                                            <div className="flex-shrink-0 w-12 text-center pt-0.5 grayscale">
-                                                <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KAT_COLORS[e.kat] }}>{months[mIdx]}</p>
-                                                <p className="text-xl font-black leading-tight" style={{ color: KAT_COLORS[e.kat] }}>{day}</p>
-                                                <p className="text-[9px] text-gray-400">{year}</p>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-sm text-gray-900 truncate" title={e.nama}>{e.nama}</p>
-                                                <div className="mt-1"><Badge label={e.kat} color="#9ca3af" /></div>
-                                            </div>
-                                            <div className="flex-shrink-0 flex items-center gap-2">
-                                                <div className="flex flex-col items-center gap-0.5">
-                                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Kursi</span>
-                                                    <div className="h-7 px-3 flex items-center justify-center rounded-lg border text-[10px] font-bold tracking-wider bg-gray-50 border-gray-100 text-gray-300">
-                                                        {e.seat !== undefined ? e.seat : "—"}
+                                        <div key={`hist-${e.pid}-${e.idx}`} className="px-4 py-3.5 bg-gray-50/30 opacity-60 hover:opacity-100 transition border-b border-gray-50 last:border-0">
+                                            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+                                                {/* Date + Name */}
+                                                <div className="flex items-start gap-3 flex-1 min-w-0">
+                                                    <div className="flex-shrink-0 w-12 text-center pt-0.5 grayscale">
+                                                        <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KAT_COLORS[e.kat] }}>{months[mIdx]}</p>
+                                                        <p className="text-xl font-black leading-tight" style={{ color: KAT_COLORS[e.kat] }}>{day}</p>
+                                                        <p className="text-[9px] text-gray-400">{year}</p>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0 pt-0.5">
+                                                        <p className="font-semibold text-sm text-gray-900 leading-snug" title={e.nama}>{e.nama}</p>
+                                                        <div className="mt-1"><Badge label={e.kat} color="#9ca3af" /></div>
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col items-center gap-0.5">
-                                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Status</span>
-                                                    <div className="relative h-7 flex items-center">
-                                                        <select
-                                                            value={e.tgl < todayDate ? "berangkat" : e.status}
-                                                            disabled={e.tgl < todayDate}
-                                                            onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)}
-                                                            className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] bg-white border-gray-200 text-gray-500 hover:bg-gray-50 ${e.tgl < todayDate ? "opacity-70 cursor-not-allowed" : "cursor-pointer focus:ring-2 focus:ring-gray-200"}`}
-                                                        >
-                                                            <option value="tersedia">Ke Tersedia</option><option value="full">Ke Full Booked</option><option value="berangkat">Berangkat</option>
-                                                        </select>
-                                                        <IoChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                                {/* Controls */}
+                                                <div className="flex items-center gap-2 flex-shrink-0 md:ml-auto" style={{ paddingLeft: 'clamp(0px, 60px, 60px)' }}>
+                                                    <div className="flex flex-col items-center gap-0.5">
+                                                        <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Kursi</span>
+                                                        <div className="h-7 px-3 flex items-center justify-center rounded-lg border text-[10px] font-bold tracking-wider bg-gray-50 border-gray-100 text-gray-300">
+                                                            {e.seat !== undefined ? e.seat : "—"}
+                                                        </div>
                                                     </div>
+                                                    <div className="flex flex-col items-center gap-0.5">
+                                                        <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Status</span>
+                                                        <div className="relative h-7 flex items-center">
+                                                            <select
+                                                                value={e.tgl < todayDate ? "berangkat" : e.status}
+                                                                disabled={e.tgl < todayDate}
+                                                                onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)}
+                                                                className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] bg-white border-gray-200 text-gray-500 hover:bg-gray-50 ${e.tgl < todayDate ? "opacity-70 cursor-not-allowed" : "cursor-pointer focus:ring-2 focus:ring-gray-200"}`}
+                                                            >
+                                                                <option value="tersedia">Ke Tersedia</option><option value="full">Ke Full Booked</option><option value="berangkat">Berangkat</option>
+                                                            </select>
+                                                            <IoChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => rmDate(e.pid, e.idx)} className="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 transition flex items-center justify-center mt-3.5">
+                                                        <IoTrashOutline className="w-4 h-4" />
+                                                    </button>
                                                 </div>
-                                                <button onClick={() => rmDate(e.pid, e.idx)} className="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 transition flex items-center justify-center mt-3.5"><IoTrashOutline className="w-4 h-4" /></button>
                                             </div>
                                         </div>
                                     );
