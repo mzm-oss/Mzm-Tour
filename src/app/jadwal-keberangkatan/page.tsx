@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { MdOutlineAirlineSeatReclineNormal } from "react-icons/md";
 import PackageNavbar from "@/components/PackageNavbar";
 import { getAllPaketsAsync, type Paket } from "@/lib/packagesData";
 
@@ -186,10 +187,8 @@ export default function JadwalKeberangkatanPage() {
                             <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full text-white text-[10px] ${
                                 entry.seat === 0 ? "bg-amber-500" : entry.seat <= 5 ? "bg-amber-500" : "bg-teal-600"
                             }`}>
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                {entry.seat === 0 ? "Segera Tersedia" : entry.seat <= 5 ? "Kuota Terbatas" : "Sisa Kuota"}
+                                <MdOutlineAirlineSeatReclineNormal className="w-3 h-3 text-white" />
+                                {entry.seat === 0 ? "Segera Tersedia" : `${entry.seat} Kursi Tersedia`}
                             </span>
                         )}
                     </div>
