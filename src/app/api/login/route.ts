@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Success — create session, reset rate limit, set HttpOnly cookie
     resetLoginRateLimit(ip);
-    const token = createSession();
+    const token = await createSession();
 
     const res = NextResponse.json({ ok: true });
     res.cookies.set(SESSION_COOKIE, token, {

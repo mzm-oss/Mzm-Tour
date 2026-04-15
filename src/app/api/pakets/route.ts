@@ -124,7 +124,7 @@ async function uploadImageToStorage(base64Data: string, paketId: string): Promis
 
 // POST /api/pakets
 export async function POST(req: NextRequest) {
-    if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!(await verifySession(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const id = body.id || `pkg-${Date.now()}`;
 
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/pakets
 export async function PUT(req: NextRequest) {
-    if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!(await verifySession(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const { id, ...rest } = body;
 
@@ -169,7 +169,7 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/pakets?id=xxx
 export async function DELETE(req: NextRequest) {
-    if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!(await verifySession(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 

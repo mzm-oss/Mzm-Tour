@@ -21,7 +21,7 @@ export async function GET() {
 import { revalidatePath } from "next/cache";
 
 export async function PUT(req: NextRequest) {
-    if (!verifySession(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!(await verifySession(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const { reviews_enabled } = body;
 

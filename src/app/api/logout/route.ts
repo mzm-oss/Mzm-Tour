@@ -4,7 +4,7 @@ import { revokeSession, SESSION_COOKIE } from "@/lib/auth";
 /** POST /api/logout — invalidate the session and clear the cookie */
 export async function POST(req: NextRequest) {
     const token = req.cookies.get(SESSION_COOKIE)?.value;
-    if (token) revokeSession(token);
+    if (token) await revokeSession(token);
 
     const res = NextResponse.json({ ok: true });
     res.cookies.set(SESSION_COOKIE, "", {

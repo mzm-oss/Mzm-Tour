@@ -1,57 +1,56 @@
 import { NextRequest } from "next/server";
+import { supabaseAdmin } from "./supabase";
 
-// ─── In-memory session store ─────────────────────────────────────────────────
-const globalSessions = (globalThis as any)._adminSessions || new Map<string, number>();
-(globalThis as any)._adminSessions = globalSessions;
-
-const sessions: Map<string, number> = globalSessions; // token → expiresAt (ms)
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 export const SESSION_COOKIE = "admin_session";
+const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 
-/** Create a new session token and store it. Returns the token. */
-export function createSession(): string {
-    const now = Date.now();
-    // Prune expired sessions
-    for (const [token, exp] of sessions.entries()) {
-        if (exp < now) sessions.delete(token);
-    }
+/** Create a new session token stored in Supabase. Returns the token. */
+export async function createSession(): Promise<string> {
     const token = crypto.randomUUID();
-    sessions.set(token, now + SESSION_TTL_MS);
+    const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+    await supabaseAdmin
+        .from("admin_sessions")
+        .insert({ token, expires_at: expiresAt });
     return token;
 }
 
-/** Returns true if the request carries a valid unexpired session cookie. */
-export function verifySession(req: NextRequest): boolean {
+/** Returns true if request carries a valid unexpired session token in Supabase. */
+export async function verifySession(req: NextRequest): Promise<boolean> {
     const token = req.cookies.get(SESSION_COOKIE)?.value;
     if (!token) return false;
-    const exp = sessions.get(token);
-    if (!exp) return false;
-    if (exp < Date.now()) { sessions.delete(token); return false; }
+
+    const { data, error } = await supabaseAdmin
+        .from("admin_sessions")
+        .select("expires_at")
+        .eq("token", token)
+        .single();
+
+    if (error || !data) return false;
+    if (new Date(data.expires_at) < new Date()) {
+        // Expired: clean it up
+        await supabaseAdmin.from("admin_sessions").delete().eq("token", token);
+        return false;
+    }
     return true;
 }
 
 /** Revoke a specific session token (logout). */
-export function revokeSession(token: string): void {
-    sessions.delete(token);
+export async function revokeSession(token: string): Promise<void> {
+    await supabaseAdmin.from("admin_sessions").delete().eq("token", token);
 }
 
-// ─── Login rate limiter ───────────────────────────────────────────────────────
+// ─── Login rate limiter (still in-memory, this is fine — it's per cold start) ───
 const globalLogins = (globalThis as any)._adminLogins || new Map<string, { count: number; lockedUntil: number }>();
 (globalThis as any)._adminLogins = globalLogins;
 const loginAttempts: Map<string, { count: number; lockedUntil: number }> = globalLogins;
 
-// Progressive lockout: attempt 1-3 = free, 4 = 1 min, 5 = 5 min, 6+ = 15 min
 function getLockoutSeconds(attemptCount: number): number {
     if (attemptCount <= 3) return 0;
-    if (attemptCount === 4) return 1 * 60;   // 1 menit
-    if (attemptCount === 5) return 5 * 60;   // 5 menit
-    return 15 * 60;                           // 15 menit
+    if (attemptCount === 4) return 1 * 60;
+    if (attemptCount === 5) return 5 * 60;
+    return 15 * 60;
 }
 
-/**
- * Tracks login attempts by IP.
- * Returns seconds remaining in lockout, or 0 if the attempt is allowed.
- */
 export function checkLoginRateLimit(ip: string): number {
     const now = Date.now();
     const record = loginAttempts.get(ip);
@@ -61,19 +60,16 @@ export function checkLoginRateLimit(ip: string): number {
         return 0;
     }
 
-    // Still locked out?
     if (record.lockedUntil > now) {
         return Math.ceil((record.lockedUntil - now) / 1000);
     }
 
-    // Lockout expired — increment and apply next tier
     record.count++;
     const lockSecs = getLockoutSeconds(record.count);
     record.lockedUntil = lockSecs > 0 ? now + lockSecs * 1000 : 0;
     return 0;
 }
 
-/** Reset the rate limit counter for an IP (call on successful login). */
 export function resetLoginRateLimit(ip: string): void {
     loginAttempts.delete(ip);
 }
