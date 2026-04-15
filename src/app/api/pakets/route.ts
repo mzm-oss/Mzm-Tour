@@ -11,7 +11,30 @@ function revalidateAllPaketPages() {
     revalidatePath("/", "layout");
 }
 
-// DB row → Paket type
+// Map DB enum values → JS display values
+function dbStatusToJs(dbVal: string): Paket["statusPublish"] {
+    const map: Record<string, Paket["statusPublish"]> = {
+        "Tersedia": "Tersedia",
+        "tersedia": "Tersedia",
+        "Full Booked": "Full Booked",
+        "full_booked": "Full Booked",
+        "FullBooked": "Full Booked",
+        "Sudah Berangkat": "Sudah Berangkat",
+        "sudah_berangkat": "Sudah Berangkat",
+        "SudahBerangkat": "Sudah Berangkat",
+    };
+    return map[dbVal] ?? "Tersedia";
+}
+
+// Map JS display values → DB enum values
+function jsStatusToDb(jsVal: string): string {
+    const map: Record<string, string> = {
+        "Tersedia": "Tersedia",
+        "Full Booked": "Full Booked",
+        "Sudah Berangkat": "Sudah Berangkat",
+    };
+    return map[jsVal] ?? jsVal;
+}
 function rowToPaket(row: Record<string, unknown>): Paket {
     return {
         id: row.id as string,
@@ -29,7 +52,7 @@ function rowToPaket(row: Record<string, unknown>): Paket {
         hotelMekkahBintang: row.hotel_mekkah_bintang as number,
         maskapai: row.maskapai as string,
         kotaAsal: row.kota_asal as string,
-        statusPublish: row.status_publish as Paket["statusPublish"],
+        statusPublish: dbStatusToJs(row.status_publish as string),
         tanggalBerangkat: (row.tanggal_berangkat as Paket["tanggalBerangkat"]) || [],
     };
 }
@@ -52,7 +75,7 @@ function paketToRow(p: Partial<Paket> & { id?: string }) {
         hotel_mekkah_bintang: p.hotelMekkahBintang ?? 4,
         maskapai: p.maskapai ?? null,
         kota_asal: p.kotaAsal ?? null,
-        status_publish: p.statusPublish ?? "Tersedia",
+        status_publish: jsStatusToDb(p.statusPublish ?? "Tersedia"),
         tanggal_berangkat: p.tanggalBerangkat ?? [],
     };
 }

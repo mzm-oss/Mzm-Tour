@@ -245,6 +245,8 @@ export default function AdminPage() {
     async function handleLogout() {
         await fetch("/api/logout", { method: "POST" });
         setAuth(false);
+        setUser("");
+        setPass("");
     }
 
     // Package CRUD
@@ -540,12 +542,12 @@ export default function AdminPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div><Label icon={IoGridOutline}>Kategori *</Label><Select value={form.kategori} onChange={e => f("kategori", e.target.value)}><option value="umroh">Umroh</option><option value="haji">Haji</option><option value="wisata">Wisata Islam</option></Select></div>
                         {form.kategori === "umroh" && <div><Label icon={IoListOutline}>Tipe Umroh</Label><Select value={form.tipeUmroh || "reguler"} onChange={e => f("tipeUmroh", e.target.value)}><option value="reguler">Reguler</option><option value="plus">Plus</option></Select></div>}
-                        <div><Label icon={IoCubeOutline}>Nama Paket *</Label><Input type="text" placeholder="cth: Umroh Reguler 9 Hari" value={form.nama} onChange={e => f("nama", e.target.value)} /></div>
-                        <div><Label icon={IoWalletOutline}>Harga *</Label><Input type="text" placeholder="cth: Rp 25.000.000" value={form.harga} onChange={e => f("harga", e.target.value)} /></div>
-                        <div><Label icon={IoTimeOutline}>Durasi *</Label><Input type="text" placeholder="cth: 9 Hari" value={form.durasi} onChange={e => f("durasi", e.target.value)} /></div>
-                        <div><Label icon={IoCalendarOutline}>Jadwal</Label><Input type="text" placeholder="cth: Setiap Bulan" value={form.jadwal || ""} onChange={e => f("jadwal", e.target.value)} /></div>
-                        <div><Label icon={IoAirplaneOutline}>Maskapai</Label><Input type="text" placeholder="cth: Garuda Indonesia" value={form.maskapai || ""} onChange={e => f("maskapai", e.target.value)} /></div>
-                        <div><Label icon={IoLocationOutline}>Berangkat Dari</Label><Input type="text" placeholder="cth: Jakarta (CGK)" value={form.kotaAsal || ""} onChange={e => f("kotaAsal", e.target.value)} /></div>
+                        <div><Label icon={IoCubeOutline}>Nama Paket *</Label><Input type="text" placeholder="cth: Umroh Reguler 9 Hari" value={form.nama} onChange={e => f("nama", e.target.value)} maxLength={50} /></div>
+                        <div><Label icon={IoWalletOutline}>Harga *</Label><Input type="text" placeholder="cth: Rp 25.000.000" value={form.harga} onChange={e => f("harga", e.target.value)} maxLength={25} /></div>
+                        <div><Label icon={IoTimeOutline}>Durasi *</Label><Input type="text" placeholder="cth: 9 Hari" value={form.durasi} onChange={e => f("durasi", e.target.value)} maxLength={20} /></div>
+                        <div><Label icon={IoCalendarOutline}>Jadwal</Label><Input type="text" placeholder="cth: Setiap Bulan" value={form.jadwal || ""} onChange={e => f("jadwal", e.target.value)} maxLength={30} /></div>
+                        <div><Label icon={IoAirplaneOutline}>Maskapai</Label><Input type="text" placeholder="cth: Garuda Indonesia" value={form.maskapai || ""} onChange={e => f("maskapai", e.target.value)} maxLength={40} /></div>
+                        <div><Label icon={IoLocationOutline}>Berangkat Dari</Label><Input type="text" placeholder="cth: Jakarta (CGK)" value={form.kotaAsal || ""} onChange={e => f("kotaAsal", e.target.value)} maxLength={30} /></div>
                         <div><Label icon={IoStarOutline}>Bintang Hotel</Label><Select value={form.hotelMekkahBintang || 4} onChange={e => f("hotelMekkahBintang", Number(e.target.value))}><option value={5}>⭐⭐⭐⭐⭐ Bintang 5</option><option value={4}>⭐⭐⭐⭐ Bintang 4</option><option value={3}>⭐⭐⭐ Bintang 3</option><option value={2}>⭐⭐ Bintang 2</option><option value={0}>— (Tidak Ada / Wisata)</option></Select></div>
                         <div>
                             <Label icon={IoRocketOutline}>Status Paket</Label>
@@ -557,7 +559,7 @@ export default function AdminPage() {
                                 </Select>
                             </div>
                         </div>
-                        <div><Label icon={IoPricetagOutline}>Label Badge</Label><Input type="text" placeholder="cth: TERLARIS" value={form.badge} onChange={e => f("badge", e.target.value)} /></div>
+                        <div><Label icon={IoPricetagOutline}>Label Badge</Label><Input type="text" placeholder="cth: TERLARIS" value={form.badge} onChange={e => f("badge", e.target.value)} maxLength={15} /></div>
                         {/* Gambar */}
                         <div className="sm:col-span-2">
                             <Label icon={IoImageOutline}>Foto Paket</Label>
@@ -611,13 +613,13 @@ export default function AdminPage() {
                             </span>
                         )}
                     </div>
-                    <p className="font-semibold text-gray-900 text-sm flex-1 min-w-0 truncate">{p.nama}</p>
+                    <p className="font-semibold text-gray-900 text-sm flex-1 min-w-0 leading-snug">{p.nama}</p>
                 </div>
 
                 {/* === ROW 2: price + status + actions === */}
-                <div className="flex items-center justify-between gap-2 mt-2">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mt-2">
                     {/* Price info */}
-                    <p className="text-xs text-gray-400 flex items-center gap-1 min-w-0 truncate">
+                    <p className="text-xs text-gray-400 flex items-center gap-1 flex-1 flex-wrap leading-relaxed">
                         <IoWalletOutline className="w-3 h-3 flex-shrink-0" /> {p.harga} · {p.durasi}{p.jadwal ? ` · ${p.jadwal}` : ""}
                     </p>
                     {/* Status + buttons */}
@@ -800,7 +802,10 @@ export default function AdminPage() {
                             className="flex-1"
                         >
                             <option value="">Pilih Paket...</option>
-                            {pakets.filter(p => p.statusPublish !== "Sudah Berangkat" && (!p.tanggalBerangkat || p.tanggalBerangkat.length === 0)).map(p => <option key={p.id} value={p.id}>{p.nama} ({p.kategori})</option>)}
+                            {pakets.filter(p => p.statusPublish !== "Sudah Berangkat" && (!p.tanggalBerangkat || p.tanggalBerangkat.length === 0)).map(p => {
+                                const label = p.nama.length > 28 ? p.nama.slice(0, 28) + "…" : p.nama;
+                                return <option key={p.id} value={p.id}>{label} ({p.kategori})</option>;
+                            })}
                         </Select>
                         <Input type="date" value={jadwalNewDate} onChange={e => setJadwalNewDate(e.target.value)} className="sm:w-44" />
                         <button onClick={addDate} className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-white text-sm font-bold bg-teal-600 hover:bg-teal-700 transition whitespace-nowrap"><IoAddCircleOutline className="w-4 h-4" /> Tambah</button>
@@ -818,18 +823,21 @@ export default function AdminPage() {
                             const [year, mStr, day] = e.tgl.split("-");
                             const mIdx = parseInt(mStr) - 1;
                             return (
-                                <div key={`${e.pid}-${e.idx}`} className="flex flex-wrap md:flex-nowrap items-center gap-x-4 gap-y-3 px-4 py-3.5 hover:bg-gray-50/50 transition border-b border-gray-50 last:border-0">
-                                    <div className="flex-shrink-0 w-12 text-center">
+                                <div key={`${e.pid}-${e.idx}`} className="flex items-start gap-3 px-4 py-3.5 hover:bg-gray-50/50 transition border-b border-gray-50 last:border-0">
+                                    {/* Date block */}
+                                    <div className="flex-shrink-0 w-12 text-center pt-0.5">
                                         <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KAT_COLORS[e.kat] }}>{months[mIdx]}</p>
                                         <p className="text-xl font-black leading-tight" style={{ color: KAT_COLORS[e.kat] }}>{day}</p>
                                         <p className="text-[9px] text-gray-400">{year}</p>
                                     </div>
-                                    <div className="flex-1 min-w-[150px] w-full md:w-auto">
-                                        <p className="font-semibold text-sm text-gray-900 truncate">{e.nama}</p>
+                                    {/* Name & badge — grows, truncates cleanly */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-sm text-gray-900 truncate" title={e.nama}>{e.nama}</p>
                                         <div className="mt-1"><Badge label={e.kat} color={KAT_COLORS[e.kat] || "#008080"} /></div>
                                     </div>
-                                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-                                        {/* Seat Control — fixed width so all states align */}
+                                    {/* Controls — flex-shrink-0 so they never wrap */}
+                                    <div className="flex-shrink-0 flex items-center gap-2">
+                                        {/* Seat Control */}
                                         <div className="flex flex-col items-center gap-0.5">
                                             <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Kursi</span>
                                             {canEditSeat(e.status) ? (
@@ -846,10 +854,7 @@ export default function AdminPage() {
                                                     <button onClick={() => doUpdSeat(e.pid, e.idx, (e.seat || 0) + 1)} className="w-7 h-7 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition border-l border-gray-100 font-bold text-sm">+</button>
                                                 </div>
                                             ) : (
-                                                <div className={`h-7 px-3 flex items-center justify-center rounded-lg border text-[10px] font-bold tracking-wider ${e.status === "full"
-                                                        ? "bg-red-50 border-red-100 text-red-400"
-                                                        : "bg-gray-50 border-gray-100 text-gray-300"
-                                                    }`}>
+                                                <div className={`h-7 px-3 flex items-center justify-center rounded-lg border text-[10px] font-bold tracking-wider ${e.status === "full" ? "bg-red-50 border-red-100 text-red-400" : "bg-gray-50 border-gray-100 text-gray-300"}`}>
                                                     {e.status === "full" ? "FULL" : "—"}
                                                 </div>
                                             )}
@@ -882,17 +887,17 @@ export default function AdminPage() {
                                     const [year, mStr, day] = e.tgl.split("-");
                                     const mIdx = parseInt(mStr) - 1;
                                     return (
-                                        <div key={`hist-${e.pid}-${e.idx}`} className="flex flex-wrap md:flex-nowrap items-center gap-x-4 gap-y-3 px-4 py-3.5 bg-gray-50/30 opacity-60 hover:opacity-100 transition border-b border-gray-50 last:border-0">
-                                            <div className="flex-shrink-0 w-12 text-center grayscale">
+                                        <div key={`hist-${e.pid}-${e.idx}`} className="flex items-start gap-3 px-4 py-3.5 bg-gray-50/30 opacity-60 hover:opacity-100 transition border-b border-gray-50 last:border-0">
+                                            <div className="flex-shrink-0 w-12 text-center pt-0.5 grayscale">
                                                 <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KAT_COLORS[e.kat] }}>{months[mIdx]}</p>
                                                 <p className="text-xl font-black leading-tight" style={{ color: KAT_COLORS[e.kat] }}>{day}</p>
                                                 <p className="text-[9px] text-gray-400">{year}</p>
                                             </div>
-                                            <div className="flex-1 min-w-[150px] w-full md:w-auto">
-                                                <p className="font-semibold text-sm text-gray-900 truncate">{e.nama}</p>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-sm text-gray-900 truncate" title={e.nama}>{e.nama}</p>
                                                 <div className="mt-1"><Badge label={e.kat} color="#9ca3af" /></div>
                                             </div>
-                                            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                                            <div className="flex-shrink-0 flex items-center gap-2">
                                                 <div className="flex flex-col items-center gap-0.5">
                                                     <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Kursi</span>
                                                     <div className="h-7 px-3 flex items-center justify-center rounded-lg border text-[10px] font-bold tracking-wider bg-gray-50 border-gray-100 text-gray-300">
