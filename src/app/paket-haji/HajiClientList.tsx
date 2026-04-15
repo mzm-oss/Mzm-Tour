@@ -46,7 +46,7 @@ function PaketCard({ paket, onImageClick, isHistory }: { paket: Paket; onImageCl
     const activeDates = (paket.tanggalBerangkat || []).filter(t => t.status !== "berangkat" && t.seat !== undefined && t.seat > 0);
     const totalSeat = activeDates.length > 0 ? activeDates.reduce((sum, t) => sum + (t.seat || 0), 0) : null;
     const seatColor = totalSeat === null ? "#6b7280" : (totalSeat <= 5 ? "#ef4444" : totalSeat <= 15 ? "#f59e0b" : "#c97d20");
-    const seatLabel = totalSeat === null ? "Tersedia" : `${totalSeat} Kursi`;
+    const seatLabel = totalSeat === null || totalSeat === 0 ? "Segera Tersedia" : totalSeat <= 5 ? "Kuota Terbatas" : "Tersedia";
 
     return (
         <div className={`bg-white rounded-[2rem] overflow-hidden flex flex-col border border-gray-100 shadow-sm transition-all duration-300 ${isHistory ? 'opacity-60 grayscale' : 'hover:shadow-2xl hover:-translate-y-1'}`}>
