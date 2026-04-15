@@ -4,21 +4,21 @@ import Image from "next/image";
 import { useRef, useEffect, useState } from "react";
 
 const galleryImages = [
-    { src: "/img/tentang-kami/img-1.png", alt: "Momen 1" },
-    { src: "/img/tentang-kami/img-2.png", alt: "Momen 2" },
-    { src: "/img/tentang-kami/img-3.png", alt: "Momen 3" },
-    { src: "/img/tentang-kami/img-4.png", alt: "Momen 4" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-5.jpeg", alt: "Momen 5" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-6.jpeg", alt: "Momen 6" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-7.jpeg", alt: "Momen 7" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-8.jpeg", alt: "Momen 8" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-9.jpeg", alt: "Momen 9" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-10.jpeg", alt: "Momen 10" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-11.jpeg", alt: "Momen 11" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-12.jpeg", alt: "Momen 12" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-13.jpeg", alt: "Momen 13" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-14.jpeg", alt: "Momen 14" },
-    { src: "/img/tentang-kami/momen-kebahagiaan-15.jpeg", alt: "Momen 15" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/img-1.png", alt: "Momen 1" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/img-2.png", alt: "Momen 2" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/img-3.png", alt: "Momen 3" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/img-4.png", alt: "Momen 4" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-5.jpeg", alt: "Momen 5" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-6.jpeg", alt: "Momen 6" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-7.jpeg", alt: "Momen 7" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-8.jpeg", alt: "Momen 8" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-9.jpeg", alt: "Momen 9" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-10.jpeg", alt: "Momen 10" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-11.jpeg", alt: "Momen 11" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-12.jpeg", alt: "Momen 12" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-13.jpeg", alt: "Momen 13" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-14.jpeg", alt: "Momen 14" },
+    { src: "/img/tentang-kami/momen-kebahagiaan/momen-kebahagiaan-15.jpeg", alt: "Momen 15" },
 ];
 
 const reuniImages = [

@@ -1,4 +1,4 @@
-﻿// Tipe data paket
+// Tipe data paket
 export type Paket = {
     id: string;
     kategori: "umroh" | "haji" | "wisata";
@@ -17,8 +17,8 @@ export type Paket = {
     // Info tambahan
     maskapai?: string;         // cth: "Garuda Indonesia"
     kotaAsal?: string;         // cth: "Jakarta (CGK)"
-    tanggalBerangkat?: { tanggal: string; status: "tersedia" | "terbatas" | "full" | "berangkat" }[];
-    statusPublish?: "Tersedia" | "Sudah Berangkat";
+    tanggalBerangkat?: { tanggal: string; status: "tersedia" | "full" | "berangkat"; seat?: number }[];
+    statusPublish?: "Tersedia" | "Full Booked" | "Sudah Berangkat";
 };
 
 // Fallback image per kategori

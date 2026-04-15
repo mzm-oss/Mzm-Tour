@@ -4,6 +4,9 @@ import PackageNavbar from "@/components/PackageNavbar";
 import { fetchPaketsServerSide } from "@/lib/fetchPaketsServer";
 import PaketClientList from "./PaketClientList";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function PaketUmrohPage() {
     const allPakets = await fetchPaketsServerSide();
     const umrohPakets = allPakets.filter(p => p.kategori === "umroh");

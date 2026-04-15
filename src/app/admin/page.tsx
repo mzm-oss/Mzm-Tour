@@ -307,7 +307,7 @@ export default function AdminPage() {
     }
 
     async function handleStatusChange(p: Paket, v: string) {
-        if (v !== "Tersedia" && v !== "Sudah Berangkat") return;
+        if (v !== "Tersedia" && v !== "Full Booked" && v !== "Sudah Berangkat") return;
         if (savingStatusId === p.id) return;
 
         setSavingStatusId(p.id);
@@ -316,13 +316,20 @@ export default function AdminPage() {
             if (v === "Sudah Berangkat") {
                 // Semua jadwal → berangkat
                 newTgl = newTgl.map(t => ({ ...t, status: "berangkat" as const }));
+            } else if (v === "Full Booked") {
+                // Semua jadwal → full
+                newTgl = newTgl.map(t => ({ ...t, status: "full" as const }));
             } else {
-                // Kembalikan ke Tersedia: jadwal yang "berangkat" → "tersedia" lagi
-                newTgl = newTgl.map(t => ({ ...t, status: (t.status === "berangkat" ? "tersedia" : t.status) as "tersedia" | "terbatas" | "full" | "berangkat" }));
+                // Kembalikan ke Tersedia: jadwal yang masa depannya belum lewat -> tersedia
+                const today = new Date().toISOString().split("T")[0];
+                newTgl = newTgl.map(t => ({
+                    ...t,
+                    status: (t.tanggal >= today ? "tersedia" : t.status) as "tersedia" | "full" | "berangkat"
+                }));
             }
 
             // Optimistic Update UI Dulu!
-            const u = pakets.map(i => i.id === p.id ? { ...i, statusPublish: v as "Tersedia" | "Sudah Berangkat", tanggalBerangkat: newTgl } : i);
+            const u = pakets.map(i => i.id === p.id ? { ...i, statusPublish: v as "Tersedia" | "Full Booked" | "Sudah Berangkat", tanggalBerangkat: newTgl } : i);
             setPakets(u);
             showToast(`Status "${p.nama}" diubah ke ${v}.`);
 
@@ -390,7 +397,7 @@ export default function AdminPage() {
         return result;
     })();
     const activePkgs = filtered.filter(p => p.statusPublish !== "Sudah Berangkat");
-    const histPkgs = filtered.filter(p => p.statusPublish === "Sudah Berangkat");
+    const histPkgs = filtered.filter(p => p.statusPublish === "Sudah Berangkat" || p.statusPublish === "Full Booked");
 
     // Admin Navbar (shared for login + dashboard)
     function AdminNav({ showTabs = false }: { showTabs?: boolean }) {
@@ -540,6 +547,7 @@ export default function AdminPage() {
                             <div className="relative">
                                 <Select value={form.statusPublish || "Tersedia"} onChange={e => f("statusPublish", e.target.value)} className="!bg-white !border-teal-100 !text-teal-800 !shadow-sm focus:!ring-teal-500/20">
                                     <option value="Tersedia">Tersedia</option>
+                                    <option value="Full Booked">Full Booked</option>
                                     <option value="Sudah Berangkat">Sudah Berangkat</option>
                                 </Select>
                             </div>
@@ -627,9 +635,12 @@ export default function AdminPage() {
                                             { confirmLabel: "Ya, Ubah", danger: newStatus === "Sudah Berangkat" }
                                         );
                                     }}
-                                    className={`appearance-none text-xs font-bold rounded-full pl-2.5 pr-6 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${hist ? "bg-white border-gray-200 text-gray-500 hover:bg-gray-50" : "bg-white border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300"}`}
+                                    className={`appearance-none text-xs font-bold rounded-full pl-2.5 pr-6 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${hist ? "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                                            : (p.statusPublish === "Full Booked" ? "bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                                                : "bg-white border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300")}`}
                                 >
                                     <option value="Tersedia">Tersedia</option>
+                                    <option value="Full Booked">Full Booked</option>
                                     <option value="Sudah Berangkat">Sudah Berangkat</option>
                                 </select>
                             )}
@@ -645,10 +656,11 @@ export default function AdminPage() {
 
     // ─── Jadwal Tab ─────────────────────────────────────────────────────
     function JadwalTab() {
-        const statusCls: Record<string, string> = { tersedia: "bg-white border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 focus:ring-2 focus:ring-teal-500/20", terbatas: "bg-white border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 focus:ring-2 focus:ring-amber-500/20", full: "bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 focus:ring-2 focus:ring-red-500/20", berangkat: "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 focus:ring-2 focus:ring-gray-200" };
-        const statusIconColors: Record<string, string> = { tersedia: "text-teal-400", terbatas: "text-amber-400", full: "text-red-400", berangkat: "text-gray-400" };
-        type FE = { pid: string; nama: string; kat: Paket["kategori"]; tgl: string; status: string; idx: number };
-        const allM = pakets.flatMap(p => (p.tanggalBerangkat || []).map((t, i) => ({ pid: p.id, idx: i, nama: p.nama, kat: p.kategori, tgl: t.tanggal, status: t.status })))
+        const statusCls: Record<string, string> = { tersedia: "bg-white border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 focus:ring-2 focus:ring-teal-500/20", full: "bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 focus:ring-2 focus:ring-red-500/20", berangkat: "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 focus:ring-2 focus:ring-gray-200" };
+        const statusIconColors: Record<string, string> = { tersedia: "text-teal-400", full: "text-red-400", berangkat: "text-gray-400" };
+        const canEditSeat = (status: string) => status === "tersedia";
+        type FE = { pid: string; nama: string; kat: Paket["kategori"]; tgl: string; status: string; idx: number; seat?: number };
+        const allM = pakets.flatMap(p => (p.tanggalBerangkat || []).map((t, i) => ({ pid: p.id, idx: i, nama: p.nama, kat: p.kategori, tgl: t.tanggal, status: t.status, seat: t.seat })))
             .filter(e => (jadwalFilterKat === "all" || e.kat === jadwalFilterKat))
             .sort((a, b) => a.tgl.localeCompare(b.tgl));
 
@@ -656,11 +668,21 @@ export default function AdminPage() {
         const activeJadwal = allM.filter(e => e.status !== "berangkat" && e.tgl >= todayDate);
         const histJadwal = allM.filter(e => e.status === "berangkat" || e.tgl < todayDate);
 
+        const recalculatePaketStatus = (d: NonNullable<Paket["tanggalBerangkat"]>): Paket["statusPublish"] => {
+            if (d.length === 0) return "Tersedia";
+            const today = new Date().toISOString().split("T")[0];
+            const isAllBerangkat = d.every(tgl => tgl.status === "berangkat" || tgl.tanggal < today);
+            if (isAllBerangkat) return "Sudah Berangkat";
+            const isAllFullOrBerangkat = d.every(tgl => tgl.status === "full" || tgl.status === "berangkat" || tgl.tanggal < today);
+            if (isAllFullOrBerangkat) return "Full Booked";
+            return "Tersedia";
+        };
+
         function doUpdStatus(pid: string, idx: number, s: string) {
             // Cari nama jadwal untuk pesan konfirmasi
             const paket = pakets.find(p => p.id === pid);
             const tglEntry = paket?.tanggalBerangkat?.[idx];
-            const statusLabel: Record<string, string> = { tersedia: "Tersedia", terbatas: "Terbatas", full: "Full Booked", berangkat: "Berangkat" };
+            const statusLabel: Record<string, string> = { tersedia: "Tersedia", full: "Full Booked", berangkat: "Berangkat" };
             askConfirm(
                 "Ubah Status Jadwal",
                 `Ubah status jadwal ${tglEntry?.tanggal || ""} pada paket "${paket?.nama || ""}" menjadi "${statusLabel[s] || s}"?`,
@@ -670,10 +692,8 @@ export default function AdminPage() {
                     const u = pakets.map(p => {
                         if (p.id !== pid) return p;
                         const d = [...(p.tanggalBerangkat || [])];
-                        d[idx] = { ...d[idx], status: s as "tersedia" | "terbatas" | "full" | "berangkat" };
-                        const today = new Date().toISOString().split("T")[0];
-                        const isAllBerangkat = d.length > 0 && d.every(tgl => tgl.status === "berangkat" || tgl.tanggal < today);
-                        const newStatusPublish = (isAllBerangkat ? "Sudah Berangkat" : "Tersedia") as "Tersedia" | "Sudah Berangkat";
+                        d[idx] = { ...d[idx], status: s as "tersedia" | "full" | "berangkat" };
+                        const newStatusPublish = recalculatePaketStatus(d);
                         return { ...p, statusPublish: newStatusPublish, tanggalBerangkat: d };
                     });
                     setPakets(u);
@@ -690,6 +710,32 @@ export default function AdminPage() {
                 { confirmLabel: "Ya, Ubah", danger: s === "berangkat" }
             );
         }
+        async function doUpdSeat(pid: string, idx: number, newSeat: number | undefined) {
+            const u = pakets.map(p => {
+                if (p.id !== pid) return p;
+                const d = [...(p.tanggalBerangkat || [])];
+                d[idx] = { ...d[idx], seat: newSeat };
+                return { ...p, tanggalBerangkat: d };
+            });
+            setPakets(u);
+            const target = u.find(p => p.id === pid);
+            if (!target) return;
+            try {
+                const res = await fetch("/api/pakets", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(target)
+                });
+                if (res.ok) {
+                    showToast(`Seat disimpan: ${newSeat ?? 0} kursi ✓`);
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(`Gagal simpan seat: ${err?.error || res.status}`, "err");
+                }
+            } catch (e) {
+                showToast("Gagal simpan seat ke server", "err");
+            }
+        }
         function rmDate(pid: string, idx: number) {
             const paket = pakets.find(p => p.id === pid);
             const tglEntry = paket?.tanggalBerangkat?.[idx];
@@ -699,7 +745,12 @@ export default function AdminPage() {
                 async () => {
                     setConfirmDialog(null);
                     // Update state Instan
-                    const u = pakets.map(p => p.id !== pid ? p : { ...p, tanggalBerangkat: (p.tanggalBerangkat || []).filter((_, i) => i !== idx) });
+                    const u = pakets.map(p => {
+                        if (p.id !== pid) return p;
+                        const d = (p.tanggalBerangkat || []).filter((_, i) => i !== idx);
+                        const newStatusPublish = recalculatePaketStatus(d);
+                        return { ...p, statusPublish: newStatusPublish, tanggalBerangkat: d };
+                    });
                     setPakets(u); showToast("Jadwal dihapus.");
 
                     const target = u.find(p => p.id === pid);
@@ -712,7 +763,15 @@ export default function AdminPage() {
             if (!jadwalNewDate || !jadwalNewPaket) { showToast("Pilih paket & tanggal.", "err"); return; }
 
             // Instan UI update
-            const u = pakets.map(p => { if (p.id !== jadwalNewPaket) return p; if ((p.tanggalBerangkat || []).some(t => t.tanggal === jadwalNewDate)) { showToast("Tanggal sudah ada.", "err"); return p; } return { ...p, tanggalBerangkat: [...(p.tanggalBerangkat || []), { tanggal: jadwalNewDate, status: "tersedia" as const }].sort((a, b) => a.tanggal.localeCompare(b.tanggal)) }; });
+            const u = pakets.map(p => {
+                if (p.id !== jadwalNewPaket) return p;
+                if ((p.tanggalBerangkat || []).some(t => t.tanggal === jadwalNewDate)) {
+                    showToast("Tanggal sudah ada.", "err"); return p;
+                }
+                const d = [...(p.tanggalBerangkat || []), { tanggal: jadwalNewDate, status: "tersedia" as const }].sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+                const newStatusPublish = recalculatePaketStatus(d);
+                return { ...p, statusPublish: newStatusPublish, tanggalBerangkat: d };
+            });
             const target = u.find(p => p.id === jadwalNewPaket);
 
             // Validasi gagal
@@ -736,7 +795,7 @@ export default function AdminPage() {
                             className="flex-1"
                         >
                             <option value="">Pilih Paket...</option>
-                            {pakets.filter(p => p.statusPublish !== "Sudah Berangkat").map(p => <option key={p.id} value={p.id}>{p.nama} ({p.kategori})</option>)}
+                            {pakets.filter(p => p.statusPublish !== "Sudah Berangkat" && (!p.tanggalBerangkat || p.tanggalBerangkat.length === 0)).map(p => <option key={p.id} value={p.id}>{p.nama} ({p.kategori})</option>)}
                         </Select>
                         <Input type="date" value={jadwalNewDate} onChange={e => setJadwalNewDate(e.target.value)} className="sm:w-44" />
                         <button onClick={addDate} className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-white text-sm font-bold bg-teal-600 hover:bg-teal-700 transition whitespace-nowrap"><IoAddCircleOutline className="w-4 h-4" /> Tambah</button>
@@ -754,21 +813,53 @@ export default function AdminPage() {
                             const [year, mStr, day] = e.tgl.split("-");
                             const mIdx = parseInt(mStr) - 1;
                             return (
-                                <div key={`${e.pid}-${e.idx}`} className="flex items-center gap-4 px-4 py-3.5 hover:bg-gray-50/50 transition">
+                                <div key={`${e.pid}-${e.idx}`} className="flex flex-wrap md:flex-nowrap items-center gap-x-4 gap-y-3 px-4 py-3.5 hover:bg-gray-50/50 transition border-b border-gray-50 last:border-0">
                                     <div className="flex-shrink-0 w-12 text-center">
                                         <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KAT_COLORS[e.kat] }}>{months[mIdx]}</p>
                                         <p className="text-xl font-black leading-tight" style={{ color: KAT_COLORS[e.kat] }}>{day}</p>
                                         <p className="text-[9px] text-gray-400">{year}</p>
                                     </div>
-                                    <div className="flex-1 min-w-0"><p className="font-semibold text-sm text-gray-900 truncate">{e.nama}</p><Badge label={e.kat} color={KAT_COLORS[e.kat] || "#008080"} /></div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <div className="relative">
-                                            <select value={e.status} onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)} className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${statusCls[e.status] || statusCls.tersedia}`}>
-                                                <option value="tersedia">Tersedia</option><option value="terbatas">Terbatas</option><option value="full">Full Booked</option><option value="berangkat">Berangkat</option>
-                                            </select>
-                                            <IoChevronDown className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 ${statusIconColors[e.status] || "text-teal-500"}`} />
+                                    <div className="flex-1 min-w-[150px] w-full md:w-auto">
+                                        <p className="font-semibold text-sm text-gray-900 truncate">{e.nama}</p>
+                                        <div className="mt-1"><Badge label={e.kat} color={KAT_COLORS[e.kat] || "#008080"} /></div>
+                                    </div>
+                                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                                        {/* Seat Control — fixed width so all states align */}
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Kursi</span>
+                                            {canEditSeat(e.status) ? (
+                                                <div className="flex items-center bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden h-7">
+                                                    <button onClick={() => doUpdSeat(e.pid, e.idx, Math.max(0, (e.seat || 0) - 1))} className="w-7 h-7 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition border-r border-gray-100 font-bold text-sm">−</button>
+                                                    <input
+                                                        type="number"
+                                                        value={e.seat === undefined ? "" : e.seat}
+                                                        onChange={ev => { const val = ev.target.value !== "" ? parseInt(ev.target.value) : undefined; doUpdSeat(e.pid, e.idx, val); }}
+                                                        placeholder="0"
+                                                        className="w-10 text-center text-xs font-bold text-gray-700 bg-transparent outline-none no-spinners"
+                                                        min={0}
+                                                    />
+                                                    <button onClick={() => doUpdSeat(e.pid, e.idx, (e.seat || 0) + 1)} className="w-7 h-7 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition border-l border-gray-100 font-bold text-sm">+</button>
+                                                </div>
+                                            ) : (
+                                                <div className={`h-7 px-3 flex items-center justify-center rounded-lg border text-[10px] font-bold tracking-wider ${e.status === "full"
+                                                        ? "bg-red-50 border-red-100 text-red-400"
+                                                        : "bg-gray-50 border-gray-100 text-gray-300"
+                                                    }`}>
+                                                    {e.status === "full" ? "FULL" : "—"}
+                                                </div>
+                                            )}
                                         </div>
-                                        <button onClick={() => rmDate(e.pid, e.idx)} className="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 transition flex items-center justify-center"><IoTrashOutline className="w-4 h-4" /></button>
+                                        {/* Status Dropdown */}
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Status</span>
+                                            <div className="relative h-7 flex items-center">
+                                                <select value={e.status} onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)} className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${statusCls[e.status] || statusCls.tersedia}`}>
+                                                    <option value="tersedia">Tersedia</option><option value="full">Full Booked</option><option value="berangkat">Berangkat</option>
+                                                </select>
+                                                <IoChevronDown className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 ${statusIconColors[e.status] || "text-teal-500"}`} />
+                                            </div>
+                                        </div>
+                                        <button onClick={() => rmDate(e.pid, e.idx)} className="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 transition flex items-center justify-center mt-3.5"><IoTrashOutline className="w-4 h-4" /></button>
                                     </div>
                                 </div>
                             );
@@ -786,21 +877,38 @@ export default function AdminPage() {
                                     const [year, mStr, day] = e.tgl.split("-");
                                     const mIdx = parseInt(mStr) - 1;
                                     return (
-                                        <div key={`hist-${e.pid}-${e.idx}`} className="flex items-center gap-4 px-4 py-3.5 bg-gray-50/30 opacity-60 hover:opacity-100 transition">
+                                        <div key={`hist-${e.pid}-${e.idx}`} className="flex flex-wrap md:flex-nowrap items-center gap-x-4 gap-y-3 px-4 py-3.5 bg-gray-50/30 opacity-60 hover:opacity-100 transition border-b border-gray-50 last:border-0">
                                             <div className="flex-shrink-0 w-12 text-center grayscale">
                                                 <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KAT_COLORS[e.kat] }}>{months[mIdx]}</p>
                                                 <p className="text-xl font-black leading-tight" style={{ color: KAT_COLORS[e.kat] }}>{day}</p>
                                                 <p className="text-[9px] text-gray-400">{year}</p>
                                             </div>
-                                            <div className="flex-1 min-w-0"><p className="font-semibold text-sm text-gray-900 truncate">{e.nama}</p><Badge label={e.kat} color="#9ca3af" /></div>
-                                            <div className="flex items-center gap-2 flex-shrink-0">
-                                                <div className="relative">
-                                                    <select value={e.status} onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)} className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] bg-white border-gray-200 text-gray-500 hover:bg-gray-50 focus:ring-2 focus:ring-gray-200`}>
-                                                        <option value="tersedia">Ke Tersedia</option><option value="terbatas">Ke Terbatas</option><option value="full">Ke Full Booked</option><option value="berangkat">Berangkat</option>
-                                                    </select>
-                                                    <IoChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                            <div className="flex-1 min-w-[150px] w-full md:w-auto">
+                                                <p className="font-semibold text-sm text-gray-900 truncate">{e.nama}</p>
+                                                <div className="mt-1"><Badge label={e.kat} color="#9ca3af" /></div>
+                                            </div>
+                                            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Kursi</span>
+                                                    <div className="h-7 px-3 flex items-center justify-center rounded-lg border text-[10px] font-bold tracking-wider bg-gray-50 border-gray-100 text-gray-300">
+                                                        {e.seat !== undefined ? e.seat : "—"}
+                                                    </div>
                                                 </div>
-                                                <button onClick={() => rmDate(e.pid, e.idx)} className="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 transition flex items-center justify-center"><IoTrashOutline className="w-4 h-4" /></button>
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Status</span>
+                                                    <div className="relative h-7 flex items-center">
+                                                        <select
+                                                            value={e.tgl < todayDate ? "berangkat" : e.status}
+                                                            disabled={e.tgl < todayDate}
+                                                            onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)}
+                                                            className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] bg-white border-gray-200 text-gray-500 hover:bg-gray-50 ${e.tgl < todayDate ? "opacity-70 cursor-not-allowed" : "cursor-pointer focus:ring-2 focus:ring-gray-200"}`}
+                                                        >
+                                                            <option value="tersedia">Ke Tersedia</option><option value="full">Ke Full Booked</option><option value="berangkat">Berangkat</option>
+                                                        </select>
+                                                        <IoChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => rmDate(e.pid, e.idx)} className="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 transition flex items-center justify-center mt-3.5"><IoTrashOutline className="w-4 h-4" /></button>
                                             </div>
                                         </div>
                                     );
@@ -886,9 +994,11 @@ export default function AdminPage() {
                             )}
 
                             <Card>
-                                {filtered.length === 0 ? <Empty icon={IoCubeOutline} msg="Belum ada paket" hint={`Klik "Tambah Paket" untuk memulai`} /> : (
+                                {filtered.length === 0 ? <Empty icon={IoAirplaneOutline} msg="Belum ada paket" hint={`Klik "Tambah Paket" untuk memulai`} /> : (
                                     <div className="divide-y divide-gray-100">
-                                        {activePkgs.map(p => <div key={p.id}>{PaketRow({ p })}</div>)}
+                                        {activePkgs.length === 0 ? (
+                                            <Empty icon={IoAirplaneOutline} msg="Belum ada paket perjalanan aktif" hint="Tambah paket baru di atas atau cek riwayat di bawah" />
+                                        ) : activePkgs.map(p => <div key={p.id}>{PaketRow({ p })}</div>)}
                                         {histPkgs.length > 0 && <>
                                             <button type="button" onClick={() => setShowRiwayat(!showRiwayat)} className="w-full px-4 py-2.5 bg-gray-50 flex items-center gap-2 hover:bg-gray-100 transition cursor-pointer">
                                                 <IoTimeOutline className="w-3.5 h-3.5 text-gray-400" />

@@ -4,6 +4,8 @@ import { supabase, supabaseAdmin } from "@/lib/supabase";
 import type { Paket } from "@/lib/packagesData";
 import { verifySession } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 // Helper: invalidate seluruh cache Next.js agar data baru langsung tampil di semua page
 function revalidateAllPaketPages() {
     revalidatePath("/", "layout");
@@ -84,7 +86,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Return direct data since we rely on `revalidatePath` in Next.js Server Components.
-    return NextResponse.json((data || []).map(rowToPaket));
+    const response = NextResponse.json((data || []).map(rowToPaket));
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    return response;
 }
 
 // Helper untuk mengunggah gambar ke Storage

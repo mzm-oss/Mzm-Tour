@@ -18,6 +18,7 @@ type JadwalEntry = {
     hotel?: string;
     durasi: string;
     harga: string;
+    seat?: number;
 };
 
 const BULAN_INDO = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGS", "SEP", "OKT", "NOV", "DES"];
@@ -46,7 +47,7 @@ function buildJadwalEntries(pakets: Paket[]): JadwalEntry[] {
         dates.forEach((item) => {
             const d = new Date(item.tanggal + "T00:00:00");
             if (!isNaN(d.getTime())) {
-                entries.push({ ...base, tanggal: d, status: item.status });
+                entries.push({ ...base, tanggal: d, status: item.status, seat: item.seat });
             }
         });
     });
@@ -65,7 +66,6 @@ const katMeta: Record<string, { label: string; color: string }> = {
 /* status labels + colors */
 const statusMeta: Record<string, { label: string; bg: string; text: string; icon: string }> = {
     tersedia: { label: "Kursi Tersedia", bg: "bg-green-50", text: "text-green-600", icon: "✓" },
-    terbatas: { label: "Kursi Terbatas", bg: "bg-amber-50", text: "text-amber-600", icon: "⚡" },
     full: { label: "Full Booked", bg: "bg-red-50", text: "text-red-500", icon: "✕" },
     berangkat: { label: "Sudah Berangkat", bg: "bg-gray-100", text: "text-gray-400", icon: "✈" },
 };
@@ -110,6 +110,8 @@ export default function JadwalKeberangkatanPage() {
         const meta = katMeta[entry.kategori] || katMeta.umroh;
         const sMeta = statusMeta[entry.status] || statusMeta.tersedia;
         const isDisabled = entry.status === "full" || entry.status === "berangkat";
+        const isFull = entry.status === "full";
+        const isBerangkat = entry.status === "berangkat";
         const day = entry.tanggal.getDate().toString().padStart(2, "0");
         const monthAbbr = BULAN_INDO[entry.tanggal.getMonth()];
         const year = entry.tanggal.getFullYear();
@@ -117,20 +119,22 @@ export default function JadwalKeberangkatanPage() {
         return (
             <div
                 key={`${entry.paketId}-${idx}`}
-                className={`flex flex-col sm:flex-row items-stretch sm:items-center rounded-2xl border transition-all duration-200 overflow-hidden ${isDisabled
+                className={`flex flex-col sm:flex-row items-stretch sm:items-center rounded-2xl border transition-all duration-200 overflow-hidden ${isBerangkat
                     ? "bg-gray-50 border-gray-200 opacity-60"
+                    : isFull
+                    ? "bg-red-50/30 border-red-100 hover:shadow-md"
                     : "bg-white border-gray-100 hover:shadow-md hover:border-gray-200"
                     }`}
             >
                 {/* Date Block */}
                 <div
                     className="flex-shrink-0 w-full sm:w-24 py-4 sm:py-5 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-0 text-center"
-                    style={{ backgroundColor: isDisabled ? "#f3f4f6" : meta.color + "12" }}
+                    style={{ backgroundColor: isBerangkat ? "#f3f4f6" : isFull ? "#fef2f2" : meta.color + "12" }}
                 >
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: isDisabled ? "#9ca3af" : meta.color }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: isBerangkat ? "#9ca3af" : isFull ? "#ef4444" : meta.color }}>
                         {monthAbbr}
                     </p>
-                    <p className="text-3xl sm:text-4xl font-black leading-none" style={{ color: isDisabled ? "#9ca3af" : meta.color }}>
+                    <p className="text-3xl sm:text-4xl font-black leading-none" style={{ color: isBerangkat ? "#9ca3af" : isFull ? "#ef4444" : meta.color }}>
                         {day}
                     </p>
                     <p className="text-[10px] font-semibold text-gray-400">{year}</p>
@@ -156,8 +160,8 @@ export default function JadwalKeberangkatanPage() {
                     <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-xs text-gray-400">
                         {entry.maskapai && (
                             <span className="flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
                                 </svg>
                                 {entry.maskapai}
                             </span>
@@ -170,16 +174,34 @@ export default function JadwalKeberangkatanPage() {
                                 {entry.hotel}
                             </span>
                         )}
+                        {/* Seat chip */}
+                        {isFull ? (
+                            <span className="inline-flex items-center gap-1 font-bold px-2.5 py-0.5 rounded-full text-white text-[10px] bg-red-500">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Full Booked
+                            </span>
+                        ) : entry.seat !== undefined && !isBerangkat && (
+                            <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full text-white text-[10px] ${
+                                entry.seat === 0 ? "bg-red-500" : entry.seat <= 5 ? "bg-red-400" : entry.seat <= 15 ? "bg-amber-500" : "bg-teal-600"
+                            }`}>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                {entry.seat === 0 ? "Penuh" : `${entry.seat} Kursi Sisa`}
+                            </span>
+                        )}
                     </div>
                 </div>
 
                 {/* Right — CTA */}
                 <div className="flex-shrink-0 px-4 sm:px-5 py-3 sm:py-4 flex items-center justify-end">
-                    {entry.status === "full" ? (
+                    {isFull ? (
                         <span className="px-4 py-2 rounded-xl bg-red-100 text-red-500 text-xs font-bold">
                             Full Booked
                         </span>
-                    ) : entry.status === "berangkat" ? (
+                    ) : isBerangkat ? (
                         <span className="px-4 py-2 rounded-xl bg-gray-200 text-gray-500 text-xs font-bold">
                             Sudah Berangkat
                         </span>
@@ -245,7 +267,6 @@ export default function JadwalKeberangkatanPage() {
                                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-teal-400 transition-all">
                                 <option value="all">Semua Status</option>
                                 <option value="tersedia">Kursi Tersedia</option>
-                                <option value="terbatas">Kursi Terbatas</option>
                                 <option value="full">Full Booked</option>
                             </select>
                         </div>

@@ -4,6 +4,9 @@ import PackageNavbar from "@/components/PackageNavbar";
 import { fetchPaketsServerSide } from "@/lib/fetchPaketsServer";
 import HajiClientList from "./HajiClientList";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function PaketHajiPage() {
     const allPakets = await fetchPaketsServerSide();
     const hajiPakets = allPakets.filter(p => p.kategori === "haji");

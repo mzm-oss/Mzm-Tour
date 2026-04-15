@@ -42,6 +42,12 @@ function PaketCard({ paket, onImageClick, isHistory }: { paket: Paket; onImageCl
     const wa = `https://wa.me/6282311000853?text=${encodeURIComponent(`Halo MZM Travel, saya tertarik dengan paket Haji: "${paket.nama}" - ${paket.harga}. Mohon info.`)}`;
     const imgSrc = paket.image || FALLBACK_IMAGES.haji;
 
+    // Hitung total seat dari semua jadwal aktif yang memiliki seat data
+    const activeDates = (paket.tanggalBerangkat || []).filter(t => t.status !== "berangkat" && t.seat !== undefined && t.seat > 0);
+    const totalSeat = activeDates.length > 0 ? activeDates.reduce((sum, t) => sum + (t.seat || 0), 0) : null;
+    const seatColor = totalSeat === null ? "#6b7280" : (totalSeat <= 5 ? "#ef4444" : totalSeat <= 15 ? "#f59e0b" : "#c97d20");
+    const seatLabel = totalSeat === null ? "Tersedia" : `${totalSeat} Kursi`;
+
     return (
         <div className={`bg-white rounded-[2rem] overflow-hidden flex flex-col border border-gray-100 shadow-sm transition-all duration-300 ${isHistory ? 'opacity-60 grayscale' : 'hover:shadow-2xl hover:-translate-y-1'}`}>
             <div className={`relative w-full aspect-[4/5] overflow-hidden cursor-zoom-in group/img`} onClick={() => onImageClick(imgSrc, paket.nama)}>
@@ -113,6 +119,19 @@ function PaketCard({ paket, onImageClick, isHistory }: { paket: Paket; onImageCl
                             <span className="text-xs font-bold text-gray-500">Harga Paket</span>
                             <span className="text-lg font-black text-amber-500">{paket.harga}</span>
                         </div>
+                        {!isHistory && (
+                            <div className="flex items-center justify-between mt-2">
+                                <span className="text-xs text-gray-400 flex items-center gap-1">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    Kursi Tersedia
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: seatColor }}>
+                                    {seatLabel}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -161,7 +180,13 @@ export default function HajiClientList({ initialPakets }: { initialPakets: Paket
 
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
                 {activePackages.length === 0 ? (
-                    <div className="text-center py-20 text-gray-400">Paket tidak ditemukan</div>
+                    <div className="text-center py-16 text-gray-400">
+                        <svg className="w-12 h-12 mx-auto mb-3 opacity-40" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+                        </svg>
+                        <p className="font-semibold">Belum ada paket tersedia</p>
+                        <p className="text-sm mt-1">Coba ubah pencarian atau cek jadwal yang sudah berangkat</p>
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                         {activePackages.map(p => <PaketCard key={p.id} paket={p} onImageClick={(_, alt) => setLightbox({ src: p.image || FALLBACK_IMAGES.haji, alt })} />)}

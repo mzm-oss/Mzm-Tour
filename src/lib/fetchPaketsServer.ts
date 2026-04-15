@@ -1,5 +1,4 @@
 import type { Paket } from "@/lib/packagesData";
-import { supabase } from "@/lib/supabase";
 
 function rowToPaket(row: Record<string, unknown>): Paket {
     return {
@@ -23,10 +22,12 @@ function rowToPaket(row: Record<string, unknown>): Paket {
     };
 }
 
-// Fetch pakets menggunakan native fetch agar bisa memanfaatkan Next.js caching
-// Data di-cache dan di-revalidate otomatis setiap 60 detik
+// Fetch pakets langsung dari Supabase — selalu fresh, tidak di-cache
 export async function fetchPaketsServerSide(): Promise<Paket[]> {
     try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
         const columns = [
             "id", "kategori", "tipe_umroh", "nama", "harga", "durasi",
             "jadwal", "badge", "badge_color", "fasilitas", "deskripsi",
@@ -34,26 +35,25 @@ export async function fetchPaketsServerSide(): Promise<Paket[]> {
             "status_publish", "tanggal_berangkat"
         ].join(",");
 
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-
-        const response = await fetch(`${supabaseUrl}/rest/v1/pakets?select=${columns}&order=created_at.asc&limit=100`, {
-            headers: {
-                "apikey": anonKey,
-                "Authorization": `Bearer ${anonKey}`
-            },
-            // `fetch` ini akan secara otomatis di-cache oleh Next.js
-            // dan akan langsung invalid ketika `revalidatePath` dipanggil oleh admin.
-        });
+        const response = await fetch(
+            `${supabaseUrl}/rest/v1/pakets?select=${columns}&order=created_at.asc&limit=100`,
+            {
+                headers: {
+                    "apikey": anonKey,
+                    "Authorization": `Bearer ${anonKey}`
+                },
+                cache: "no-store",
+            }
+        );
 
         if (!response.ok) {
-            console.error("Failed to fetch pakets via native fetch:", response.statusText);
+            console.error("Failed to fetch pakets:", response.statusText);
             return [];
         }
 
         const data = await response.json();
         return (data as Record<string, unknown>[]).map(rowToPaket);
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("fetchPaketsServerSide error:", err);
         return [];
     }

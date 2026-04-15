@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 
 // ─── In-memory session store ─────────────────────────────────────────────────
-const sessions = new Map<string, number>(); // token → expiresAt (ms)
+const globalSessions = (globalThis as any)._adminSessions || new Map<string, number>();
+(globalThis as any)._adminSessions = globalSessions;
+
+const sessions: Map<string, number> = globalSessions; // token → expiresAt (ms)
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 export const SESSION_COOKIE = "admin_session";
 
@@ -33,7 +36,9 @@ export function revokeSession(token: string): void {
 }
 
 // ─── Login rate limiter ───────────────────────────────────────────────────────
-const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+const globalLogins = (globalThis as any)._adminLogins || new Map<string, { count: number; lockedUntil: number }>();
+(globalThis as any)._adminLogins = globalLogins;
+const loginAttempts: Map<string, { count: number; lockedUntil: number }> = globalLogins;
 
 // Progressive lockout: attempt 1-3 = free, 4 = 1 min, 5 = 5 min, 6+ = 15 min
 function getLockoutSeconds(attemptCount: number): number {
