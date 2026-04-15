@@ -824,46 +824,49 @@ export default function AdminPage() {
                             const mIdx = parseInt(mStr) - 1;
                             return (
                                 <div key={`${e.pid}-${e.idx}`} className="px-4 py-3.5 hover:bg-gray-50/50 transition border-b border-gray-50 last:border-0">
-                                    {/* Row 1: date + name */}
-                                    <div className="flex items-start gap-3">
-                                        <div className="flex-shrink-0 w-12 text-center pt-0.5">
-                                            <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KAT_COLORS[e.kat] }}>{months[mIdx]}</p>
-                                            <p className="text-xl font-black leading-tight" style={{ color: KAT_COLORS[e.kat] }}>{day}</p>
-                                            <p className="text-[9px] text-gray-400">{year}</p>
-                                        </div>
-                                        <div className="flex-1 min-w-0 pt-0.5">
-                                            <p className="font-semibold text-sm text-gray-900 leading-snug">{e.nama}</p>
-                                            <div className="mt-1"><Badge label={e.kat} color={KAT_COLORS[e.kat] || "#008080"} /></div>
-                                        </div>
-                                    </div>
-                                    {/* Row 2: controls (indented to align with name) */}
-                                    <div className="flex items-center gap-3 mt-3 flex-wrap" style={{ paddingLeft: '60px' }}>
-                                        <div className="flex flex-col items-center gap-0.5">
-                                            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Kursi</span>
-                                            {canEditSeat(e.status) ? (
-                                                <div className="flex items-center bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden h-7">
-                                                    <button onClick={() => doUpdSeat(e.pid, e.idx, Math.max(0, (e.seat || 0) - 1))} className="w-7 h-7 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition border-r border-gray-100 font-bold text-sm">−</button>
-                                                    <input type="number" value={e.seat === undefined ? "" : e.seat} onChange={ev => { const val = ev.target.value !== "" ? parseInt(ev.target.value) : undefined; doUpdSeat(e.pid, e.idx, val); }} placeholder="0" className="w-10 text-center text-xs font-bold text-gray-700 bg-transparent outline-none no-spinners" min={0} />
-                                                    <button onClick={() => doUpdSeat(e.pid, e.idx, (e.seat || 0) + 1)} className="w-7 h-7 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition border-l border-gray-100 font-bold text-sm">+</button>
-                                                </div>
-                                            ) : (
-                                                <div className={`h-7 px-3 flex items-center justify-center rounded-lg border text-[10px] font-bold tracking-wider ${e.status === "full" ? "bg-red-50 border-red-100 text-red-400" : "bg-gray-50 border-gray-100 text-gray-300"}`}>
-                                                    {e.status === "full" ? "FULL" : "—"}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col items-center gap-0.5">
-                                            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Status</span>
-                                            <div className="relative h-7 flex items-center">
-                                                <select value={e.status} onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)} className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${statusCls[e.status] || statusCls.tersedia}`}>
-                                                    <option value="tersedia">Tersedia</option><option value="full">Full Booked</option><option value="berangkat">Berangkat</option>
-                                                </select>
-                                                <IoChevronDown className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 ${statusIconColors[e.status] || "text-teal-500"}`} />
+                                    {/* Desktop: single row | Mobile: 2 rows */}
+                                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+                                        {/* Date + Name (always visible) */}
+                                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                                            <div className="flex-shrink-0 w-12 text-center pt-0.5">
+                                                <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KAT_COLORS[e.kat] }}>{months[mIdx]}</p>
+                                                <p className="text-xl font-black leading-tight" style={{ color: KAT_COLORS[e.kat] }}>{day}</p>
+                                                <p className="text-[9px] text-gray-400">{year}</p>
+                                            </div>
+                                            <div className="flex-1 min-w-0 pt-0.5">
+                                                <p className="font-semibold text-sm text-gray-900 leading-snug">{e.nama}</p>
+                                                <div className="mt-1"><Badge label={e.kat} color={KAT_COLORS[e.kat] || "#008080"} /></div>
                                             </div>
                                         </div>
-                                        <button onClick={() => rmDate(e.pid, e.idx)} className="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 transition flex items-center justify-center self-end">
-                                            <IoTrashOutline className="w-4 h-4" />
-                                        </button>
+                                        {/* Controls (inline on desktop, below on mobile) */}
+                                        <div className="flex items-center gap-2 flex-shrink-0 md:ml-auto pl-15 md:pl-0" style={{ paddingLeft: 'clamp(0px, 60px, 60px)' }}>
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Kursi</span>
+                                                {canEditSeat(e.status) ? (
+                                                    <div className="flex items-center bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden h-7">
+                                                        <button onClick={() => doUpdSeat(e.pid, e.idx, Math.max(0, (e.seat || 0) - 1))} className="w-7 h-7 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition border-r border-gray-100 font-bold text-sm">−</button>
+                                                        <input type="number" value={e.seat === undefined ? "" : e.seat} onChange={ev => { const val = ev.target.value !== "" ? parseInt(ev.target.value) : undefined; doUpdSeat(e.pid, e.idx, val); }} placeholder="0" className="w-10 text-center text-xs font-bold text-gray-700 bg-transparent outline-none no-spinners" min={0} />
+                                                        <button onClick={() => doUpdSeat(e.pid, e.idx, (e.seat || 0) + 1)} className="w-7 h-7 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition border-l border-gray-100 font-bold text-sm">+</button>
+                                                    </div>
+                                                ) : (
+                                                    <div className={`h-7 px-3 flex items-center justify-center rounded-lg border text-[10px] font-bold tracking-wider ${e.status === "full" ? "bg-red-50 border-red-100 text-red-400" : "bg-gray-50 border-gray-100 text-gray-300"}`}>
+                                                        {e.status === "full" ? "FULL" : "—"}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300">Status</span>
+                                                <div className="relative h-7 flex items-center">
+                                                    <select value={e.status} onChange={ev => doUpdStatus(e.pid, e.idx, ev.target.value)} className={`appearance-none text-[10px] font-bold uppercase tracking-[0.05em] rounded-full pl-3 pr-7 py-1.5 border cursor-pointer outline-none transition-all shadow-[0_2px_8px_-3px_rgba(0,0,0,0.1)] ${statusCls[e.status] || statusCls.tersedia}`}>
+                                                        <option value="tersedia">Tersedia</option><option value="full">Full Booked</option><option value="berangkat">Berangkat</option>
+                                                    </select>
+                                                    <IoChevronDown className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 ${statusIconColors[e.status] || "text-teal-500"}`} />
+                                                </div>
+                                            </div>
+                                            <button onClick={() => rmDate(e.pid, e.idx)} className="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 transition flex items-center justify-center mt-3.5">
+                                                <IoTrashOutline className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             );
