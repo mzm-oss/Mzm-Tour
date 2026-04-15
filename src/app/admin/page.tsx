@@ -335,10 +335,15 @@ export default function AdminPage() {
 
             const dataToSave = { ...p, statusPublish: v, tanggalBerangkat: newTgl };
 
-            // Background Fetch
-            fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dataToSave) })
-                .catch(() => showToast("Gagal mengubah status di server.", "err"))
-                .finally(() => setSavingStatusId(null));
+            // Background Fetch with error handling
+            const res = await fetch("/api/pakets", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dataToSave) });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                showToast(`Gagal simpan: ${err?.error || res.status}. Coba logout & login ulang.`, "err");
+                // Rollback UI
+                setPakets(prev => prev.map(i => i.id === p.id ? p : i));
+            }
+            setSavingStatusId(null);
 
         } catch {
             showToast("Gagal mengubah status.", "err");
